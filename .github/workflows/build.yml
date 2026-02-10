@@ -7,16 +7,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
-      
+
+      - name: Download BusyBox source
+        run: |
+          wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
+          tar xjf busybox-1.36.1.tar.bz2
+          mv busybox-1.36.1/* busybox-1.36.1/.* . 2>/dev/null || true
+          rm -rf busybox-1.36.1 busybox-1.36.1.tar.bz2
+
       - name: Configure BusyBox
         run: |
           make defconfig
           sed -i 's/^CONFIG_TC=y/# CONFIG_TC is not set/' .config
-      
+
       - name: Build
         run: make -j$(nproc)
