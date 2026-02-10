@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=BlazeNeuro
+Comment=BlazeNeuro Desktop Environment
+Exec=blazeneuro-session
+Type=Application
+DesktopNames=BlazeNeuro

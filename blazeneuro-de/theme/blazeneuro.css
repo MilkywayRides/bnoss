@@ -1,0 +1,291 @@
+/* BlazeNeuro GTK3 Theme — shadcn-inspired dark with transparency */
+
+/* ── Global ─────────────────────────────────────────────── */
+* {
+    font-family: "Inter", "Segoe UI", "Helvetica Neue", sans-serif;
+    -gtk-icon-theme: "Papirus-Dark";
+    outline: none;
+}
+
+/* ── Window ─────────────────────────────────────────────── */
+window {
+    background-color: rgba(10, 10, 14, 0.92);
+    color: #fafafa;
+}
+
+decoration {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* ── Header Bar ─────────────────────────────────────────── */
+headerbar {
+    background-color: rgba(18, 18, 22, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    min-height: 38px;
+    padding: 0 8px;
+    border-radius: 12px 12px 0 0;
+}
+
+headerbar .title {
+    color: #e4e4e7;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+headerbar button {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #a1a1aa;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 2px;
+}
+
+headerbar button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+button {
+    background-color: rgba(39, 39, 42, 0.8);
+    color: #fafafa;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px 16px;
+    min-height: 32px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 150ms ease;
+}
+
+button:hover {
+    background-color: rgba(63, 63, 70, 0.9);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+button:active {
+    background-color: rgba(39, 39, 42, 1.0);
+}
+
+button.destructive-action {
+    background-color: rgba(239, 68, 68, 0.8);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+button.suggested-action {
+    background-color: rgba(59, 130, 246, 0.8);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+button.suggested-action:hover {
+    background-color: rgba(59, 130, 246, 1.0);
+}
+
+/* ── Entry / Input ──────────────────────────────────────── */
+entry {
+    background-color: rgba(24, 24, 28, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fafafa;
+    padding: 6px 12px;
+    min-height: 32px;
+    caret-color: #3b82f6;
+    font-size: 13px;
+}
+
+entry:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+entry selection {
+    background-color: rgba(59, 130, 246, 0.4);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+scrollbar {
+    background: transparent;
+}
+
+scrollbar slider {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    min-width: 6px;
+    min-height: 6px;
+}
+
+scrollbar slider:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+scrollbar.overlay-indicator:not(.dragging):not(.hovering) slider {
+    min-width: 4px;
+    min-height: 4px;
+}
+
+/* ── Labels ─────────────────────────────────────────────── */
+label {
+    color: #e4e4e7;
+}
+
+label.dim-label {
+    color: #71717a;
+}
+
+/* ── Lists ──────────────────────────────────────────────── */
+list, listbox {
+    background-color: transparent;
+}
+
+row {
+    border-radius: 8px;
+    padding: 4px 8px;
+    transition: background 150ms ease;
+}
+
+row:selected {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+row:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* ── Menus ───────────────────────────────────────────────── */
+menu, .menu {
+    background-color: rgba(24, 24, 28, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+menuitem {
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #e4e4e7;
+    font-size: 13px;
+}
+
+menuitem:hover {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #fafafa;
+}
+
+/* ── Tooltips ───────────────────────────────────────────── */
+tooltip {
+    background-color: rgba(24, 24, 28, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #e4e4e7;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* ── Notebook / Tabs ────────────────────────────────────── */
+notebook {
+    background-color: transparent;
+}
+
+notebook header {
+    background-color: rgba(18, 18, 22, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+notebook tab {
+    background-color: transparent;
+    color: #71717a;
+    padding: 8px 16px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+notebook tab:checked {
+    color: #fafafa;
+    border-bottom: 2px solid #3b82f6;
+}
+
+notebook tab:hover {
+    color: #a1a1aa;
+}
+
+/* ── Switch ─────────────────────────────────────────────── */
+switch {
+    background-color: rgba(63, 63, 70, 0.8);
+    border-radius: 999px;
+    min-width: 40px;
+    min-height: 22px;
+    border: none;
+}
+
+switch:checked {
+    background-color: rgba(59, 130, 246, 0.9);
+}
+
+switch slider {
+    background-color: #fafafa;
+    border-radius: 999px;
+    min-width: 18px;
+    min-height: 18px;
+    margin: 2px;
+}
+
+/* ── Scale / Slider ─────────────────────────────────────── */
+scale trough {
+    background-color: rgba(39, 39, 42, 0.8);
+    border-radius: 999px;
+    min-height: 4px;
+}
+
+scale highlight {
+    background-color: #3b82f6;
+    border-radius: 999px;
+}
+
+scale slider {
+    background-color: #fafafa;
+    border-radius: 999px;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+/* ── Check / Radio ──────────────────────────────────────── */
+checkbutton check,
+radiobutton radio {
+    background-color: rgba(39, 39, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    min-width: 18px;
+    min-height: 18px;
+}
+
+radiobutton radio {
+    border-radius: 999px;
+}
+
+checkbutton check:checked,
+radiobutton radio:checked {
+    background-color: rgba(59, 130, 246, 0.9);
+    border-color: #3b82f6;
+}
+
+/* ── Dialog ─────────────────────────────────────────────── */
+dialog {
+    background-color: rgba(18, 18, 22, 0.95);
+    border-radius: 12px;
+}
+
+messagedialog {
+    background-color: rgba(18, 18, 22, 0.95);
+}
+
+/* ── Separator ──────────────────────────────────────────── */
+separator {
+    background-color: rgba(255, 255, 255, 0.06);
+    min-height: 1px;
+    min-width: 1px;
+}

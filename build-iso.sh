@@ -2,7 +2,7 @@
 set -e
 
 # BlazeNeuro Desktop OS Build Script
-# Creates a fully functional Ubuntu-based desktop ISO with XFCE4, software installation, and disk installer
+# Creates a fully functional Ubuntu-based desktop ISO with custom C-based DE
 
 ROOTFS="./rootfs"
 ISOROOT="./isoroot"
@@ -17,7 +17,7 @@ sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
 sudo mount -t proc proc "$ROOTFS/proc"
 sudo mount -t sysfs sysfs "$ROOTFS/sys"
 
-# Full apt sources with universe/multiverse for maximum package availability
+# Full apt sources
 sudo tee "$ROOTFS/etc/apt/sources.list" > /dev/null << EOF
 deb http://archive.ubuntu.com/ubuntu $DISTRO main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu $DISTRO-updates main restricted universe multiverse
@@ -51,6 +51,7 @@ apt-get install -y \
     dbus \
     udev \
     network-manager \
+    nm-tray \
     iproute2 \
     iputils-ping \
     wget \
@@ -70,92 +71,62 @@ apt-get install -y \
     unzip \
     zip \
     htop \
-    neofetch
-"
-
-echo "=== Step 4: Install XFCE4 desktop environment ==="
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y \
-    xfce4 \
-    xfce4-terminal \
-    xfce4-settings \
-    xfce4-panel \
-    xfce4-session \
-    xfce4-appfinder \
-    xfce4-taskmanager \
-    xfce4-screenshooter \
-    xfce4-power-manager \
-    xfce4-notifyd \
-    thunar \
-    thunar-archive-plugin \
-    mousepad \
-    ristretto \
-    lightdm \
-    lightdm-gtk-greeter \
-    lightdm-gtk-greeter-settings \
+    neofetch \
+    feh \
+    picom \
     xorg \
     xserver-xorg \
     xinit \
     dbus-x11 \
+    libgtk-3-dev \
+    libvte-2.91-dev \
+    libx11-dev \
+    pkg-config \
     adwaita-icon-theme \
     papirus-icon-theme \
-    gnome-themes-extra \
-    arc-theme \
-    fonts-dejavu-core \
-    fonts-liberation \
+    fonts-inter \
+    fonts-jetbrains-mono \
     fonts-noto-color-emoji \
-    pulseaudio \
-    pavucontrol \
-    gvfs \
-    gvfs-backends \
-    file-roller \
-    evince \
+    lightdm \
+    lightdm-gtk-greeter \
+    lightdm-gtk-greeter-settings \
     gnome-calculator \
-    gnome-disk-utility \
-    synaptic
+    evince \
+    mousepad \
+    gnome-disk-utility
 "
 
-echo "=== Step 5: Install Chromium browser ==="
+echo "=== Step 4: Install Chromium and VS Code ==="
 sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y chromium-browser || apt-get install -y chromium
-"
 
-echo "=== Step 6: Install VS Code ==="
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
 echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main' > /etc/apt/sources.list.d/vscode.list
 apt-get update
 apt-get install -y code
 "
 
-echo "=== Step 7: Install Snap support ==="
+echo "=== Step 5: Install Snap and Software Center ==="
 sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y snapd
+apt-get install -y snapd gnome-software gnome-software-plugin-snap
 systemctl enable snapd.socket || true
 "
 
-echo "=== Step 8: Install GNOME Software Center ==="
+echo "=== Step 6: Build BlazeNeuro Desktop Environment ==="
+# Copy source code into chroot
+sudo cp -r blazeneuro-de "$ROOTFS/tmp/"
+
+# Build and install inside chroot
 sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y gnome-software gnome-software-plugin-snap
+cd /tmp/blazeneuro-de
+make install
+cd /
+rm -rf /tmp/blazeneuro-de
 "
 
-echo "=== Step 9: Install Calamares installer ==="
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y calamares calamares-settings-debian 2>/dev/null || {
-    echo 'Calamares not in repos, installing ubiquity instead...'
-    apt-get install -y ubiquity ubiquity-frontend-gtk ubiquity-slideshow-ubuntu 2>/dev/null || {
-        echo 'Creating manual install script instead...'
-    }
-}
-"
-
-# Create a simple install-to-disk script as fallback
+echo "=== Step 7: Create Install Script ==="
 sudo tee "$ROOTFS/usr/local/bin/install-blazeneuro" > /dev/null << 'INSTALL_SCRIPT'
 #!/bin/bash
 # BlazeNeuro Install to Disk
@@ -165,7 +136,7 @@ echo "========================================="
 echo ""
 
 if [ "$(id -u)" -ne 0 ]; then
-    echo "Please run as root: sudo install-bnoss"
+    echo "Please run as root: sudo install-blazeneuro"
     exit 1
 fi
 
@@ -228,7 +199,7 @@ echo "Remove the installation media before rebooting."
 INSTALL_SCRIPT
 sudo chmod +x "$ROOTFS/usr/local/bin/install-blazeneuro"
 
-echo "=== Step 10: Create user account ==="
+echo "=== Step 8: Create user account ==="
 sudo chroot "$ROOTFS" bash -c "
 useradd -m -s /bin/bash -G sudo,adm,cdrom,audio,video,plugdev user
 echo 'user:user' | chpasswd
@@ -237,117 +208,35 @@ echo 'root:root' | chpasswd
 echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user
 "
 
-echo "=== Step 11: Configure auto-login ==="
+echo "=== Step 9: Configure auto-login ==="
 sudo mkdir -p "$ROOTFS/etc/lightdm/lightdm.conf.d"
 sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-autologin.conf" > /dev/null << EOF
 [Seat:*]
 autologin-user=user
 autologin-user-timeout=0
-user-session=xfce
+user-session=blazeneuro
 EOF
 
 sudo chroot "$ROOTFS" systemctl set-default graphical.target
 
-echo "=== Step 12: Configure networking ==="
+echo "=== Step 10: Configure networking ==="
 sudo chroot "$ROOTFS" systemctl enable NetworkManager
 
-echo "=== Step 13: Set up desktop ==="
-sudo mkdir -p "$ROOTFS/home/user/Desktop"
+echo "=== Step 11: Set up user home ==="
 sudo mkdir -p "$ROOTFS/home/user/Documents"
 sudo mkdir -p "$ROOTFS/home/user/Downloads"
 sudo mkdir -p "$ROOTFS/home/user/Pictures"
 sudo mkdir -p "$ROOTFS/home/user/Music"
 sudo mkdir -p "$ROOTFS/home/user/Videos"
 
-# Desktop shortcut: Terminal
-sudo tee "$ROOTFS/home/user/Desktop/terminal.desktop" > /dev/null << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Terminal
-Exec=xfce4-terminal
-Icon=utilities-terminal
-Terminal=false
-Categories=System;TerminalEmulator;
-EOF
+# Set default wallpaper
+if [ -f "blazeneuro-de/assets/wallpaper.png" ]; then
+    echo "$ROOTFS/usr/local/share/blazeneuro/assets/wallpaper.png" > "$ROOTFS/home/user/.blazeneuro-wallpaper"
+fi
 
-# Desktop shortcut: Chromium
-sudo tee "$ROOTFS/home/user/Desktop/chromium.desktop" > /dev/null << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Chromium Browser
-Exec=chromium-browser --no-sandbox
-Icon=chromium-browser
-Terminal=false
-Categories=Network;WebBrowser;
-EOF
-
-# Desktop shortcut: VS Code
-sudo tee "$ROOTFS/home/user/Desktop/code.desktop" > /dev/null << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Visual Studio Code
-Exec=code --no-sandbox --unity-launch
-Icon=com.visualstudio.code
-Terminal=false
-Categories=Development;IDE;
-EOF
-
-# Desktop shortcut: Files
-sudo tee "$ROOTFS/home/user/Desktop/files.desktop" > /dev/null << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Files
-Exec=thunar
-Icon=system-file-manager
-Terminal=false
-Categories=System;FileManager;
-EOF
-
-# Desktop shortcut: Software Center
-sudo tee "$ROOTFS/home/user/Desktop/software.desktop" > /dev/null << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Software Center
-Exec=gnome-software
-Icon=org.gnome.Software
-Terminal=false
-Categories=System;
-EOF
-
-# Desktop shortcut: Install to Disk
-sudo tee "$ROOTFS/home/user/Desktop/install-bnoss.desktop" > /dev/null << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Install BlazeNeuro to Disk
-Exec=xfce4-terminal -e "sudo install-blazeneuro"
-Icon=drive-harddisk
-Terminal=false
-Categories=System;
-EOF
-
-sudo chmod +x "$ROOTFS/home/user/Desktop/"*.desktop
 sudo chroot "$ROOTFS" chown -R user:user /home/user
 
-# Apply Arc-Dark theme and Papirus icons
-sudo mkdir -p "$ROOTFS/home/user/.config/xfce4/xfconf/xfce-perchannel-xml"
-sudo tee "$ROOTFS/home/user/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml" > /dev/null << 'XSETTINGS'
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xsettings" version="1.0">
-  <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="Arc-Dark"/>
-    <property name="IconThemeName" type="string" value="Papirus-Dark"/>
-  </property>
-</channel>
-XSETTINGS
-sudo chroot "$ROOTFS" chown -R user:user /home/user/.config
-
-echo "=== Step 14: Clean up chroot ==="
+echo "=== Step 12: Clean up chroot ==="
 sudo chroot "$ROOTFS" apt-get clean
 sudo chroot "$ROOTFS" rm -rf /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
@@ -356,7 +245,7 @@ sudo umount "$ROOTFS/dev" || true
 sudo umount "$ROOTFS/proc" || true
 sudo umount "$ROOTFS/sys" || true
 
-echo "=== Step 15: Build live ISO ==="
+echo "=== Step 13: Build live ISO ==="
 mkdir -p "$ISOROOT"/{boot/grub,live}
 
 VMLINUZ=$(ls "$ROOTFS"/boot/vmlinuz-* 2>/dev/null | head -1)
@@ -413,7 +302,7 @@ menuentry "BlazeNeuro Desktop (Persistent)" {
 }
 GRUBCFG
 
-echo "=== Step 16: Generate ISO ==="
+echo "=== Step 14: Generate ISO ==="
 grub-mkrescue -o blazeneuro.iso "$ISOROOT"
 
 echo "=== Build complete! ==="
