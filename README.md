@@ -1,7 +1,32 @@
-# BusyBox Build with TC Disabled
+# bnoss — Desktop Linux OS
 
-This repository contains a BusyBox build configuration with TC (traffic control) disabled due to missing CBQ kernel headers.
+A custom Ubuntu-based desktop Linux distro built via GitHub Actions.
 
-## Fix Applied
+## What's Included
 
-Disabled `CONFIG_TC` to resolve build errors related to missing CBQ structures in modern kernel headers.
+- **Desktop**: XFCE4
+- **Browser**: Chromium
+- **File Manager**: Thunar
+- **Terminal**: xfce4-terminal
+- **Settings**: xfce4-settings
+- **Init**: systemd
+- **Networking**: NetworkManager
+
+## Download
+
+Go to [Actions](../../actions) → click the latest successful run → download the **bnoss-desktop-iso** artifact.
+
+## Boot
+
+```bash
+# With QEMU
+qemu-system-x86_64 -cdrom bnoss.iso -m 2048 -enable-kvm
+
+# Or burn to USB
+sudo dd if=bnoss.iso of=/dev/sdX bs=4M status=progress
+```
+
+## Default Credentials
+
+- **User**: `user` / `user`
+- **Root**: `root` / `root`

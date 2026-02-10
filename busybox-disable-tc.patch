@@ -1,5 +1,0 @@
---- .config.orig
-+++ .config
-@@ -1,1 +1,1 @@
--CONFIG_TC=y
-+# CONFIG_TC is not set

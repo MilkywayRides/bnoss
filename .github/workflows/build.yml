@@ -1,83 +1,33 @@
-name: Build BusyBox ISO
+name: Build bnoss Desktop ISO
 
 on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies
+      - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential grub-pc-bin grub-common xorriso mtools
+          sudo apt-get install -y \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            grub-pc-bin \
+            grub-common \
+            mtools
 
-      - name: Download BusyBox source
+      - name: Build bnoss ISO
         run: |
-          wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
-          tar xjf busybox-1.36.1.tar.bz2
-          mv busybox-1.36.1/* busybox-1.36.1/.* . 2>/dev/null || true
-          rm -rf busybox-1.36.1 busybox-1.36.1.tar.bz2
-
-      - name: Configure BusyBox
-        run: |
-          make defconfig
-          sed -i 's/^CONFIG_TC=y/# CONFIG_TC is not set/' .config
-          sed -i 's/^# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config
-
-      - name: Build BusyBox
-        run: make -j$(nproc)
-
-      - name: Install BusyBox
-        run: make install CONFIG_PREFIX=./rootfs
-
-      - name: Create initramfs
-        run: |
-          cd rootfs
-          mkdir -p proc sys dev etc etc/init.d tmp
-          cat > etc/init.d/rcS << 'INIT'
-          #!/bin/sh
-          mount -t proc none /proc
-          mount -t sysfs none /sys
-          mount -t devtmpfs none /dev
-          echo "Welcome to BusyBox Linux!"
-          INIT
-          chmod +x etc/init.d/rcS
-
-          cat > init << 'INITSCRIPT'
-          #!/bin/sh
-          /bin/mount -t proc none /proc
-          /bin/mount -t sysfs none /sys
-          /bin/mount -t devtmpfs none /dev
-          exec /sbin/init
-          INITSCRIPT
-          chmod +x init
-
-          find . | cpio -H newc -o | gzip > ../initramfs.cpio.gz
-          cd ..
-
-      - name: Build bootable ISO
-        run: |
-          mkdir -p isoroot/boot/grub
-          sudo cp /boot/vmlinuz-$(uname -r) isoroot/boot/vmlinuz
-          sudo chmod 644 isoroot/boot/vmlinuz
-          cp initramfs.cpio.gz isoroot/boot/initramfs.cpio.gz
-
-          cat > isoroot/boot/grub/grub.cfg << 'GRUBCFG'
-          set timeout=5
-          set default=0
-
-          menuentry "BusyBox Linux" {
-              linux /boot/vmlinuz quiet init=/init
-              initrd /boot/initramfs.cpio.gz
-          }
-          GRUBCFG
-
-          grub-mkrescue -o busybox.iso isoroot
+          chmod +x build-iso.sh
+          sudo ./build-iso.sh
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
-          name: busybox-iso
-          path: busybox.iso
+          name: bnoss-desktop-iso
+          path: bnoss.iso
+          compression-level: 0
