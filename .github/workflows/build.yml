@@ -60,7 +60,7 @@ jobs:
       - name: Build bootable ISO
         run: |
           mkdir -p isoroot/boot/grub
-          cp /boot/vmlinuz-$(uname -r) isoroot/boot/vmlinuz
+          sudo cp /boot/vmlinuz-$(uname -r) isoroot/boot/vmlinuz
           cp initramfs.cpio.gz isoroot/boot/initramfs.cpio.gz
 
           cat > isoroot/boot/grub/grub.cfg << 'GRUBCFG'
