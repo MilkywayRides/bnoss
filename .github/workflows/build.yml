@@ -1,4 +1,4 @@
-name: Build BusyBox
+name: Build BusyBox ISO
 
 on: [push, pull_request]
 
@@ -11,7 +11,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential
+          sudo apt-get install -y build-essential grub-pc-bin grub-common xorriso mtools
 
       - name: Download BusyBox source
         run: |
@@ -24,6 +24,59 @@ jobs:
         run: |
           make defconfig
           sed -i 's/^CONFIG_TC=y/# CONFIG_TC is not set/' .config
+          sed -i 's/^# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config
 
-      - name: Build
+      - name: Build BusyBox
         run: make -j$(nproc)
+
+      - name: Install BusyBox
+        run: make install CONFIG_PREFIX=./rootfs
+
+      - name: Create initramfs
+        run: |
+          cd rootfs
+          mkdir -p proc sys dev etc etc/init.d tmp
+          cat > etc/init.d/rcS << 'INIT'
+          #!/bin/sh
+          mount -t proc none /proc
+          mount -t sysfs none /sys
+          mount -t devtmpfs none /dev
+          echo "Welcome to BusyBox Linux!"
+          INIT
+          chmod +x etc/init.d/rcS
+
+          cat > init << 'INITSCRIPT'
+          #!/bin/sh
+          /bin/mount -t proc none /proc
+          /bin/mount -t sysfs none /sys
+          /bin/mount -t devtmpfs none /dev
+          exec /sbin/init
+          INITSCRIPT
+          chmod +x init
+
+          find . | cpio -H newc -o | gzip > ../initramfs.cpio.gz
+          cd ..
+
+      - name: Build bootable ISO
+        run: |
+          mkdir -p isoroot/boot/grub
+          cp /boot/vmlinuz-$(uname -r) isoroot/boot/vmlinuz
+          cp initramfs.cpio.gz isoroot/boot/initramfs.cpio.gz
+
+          cat > isoroot/boot/grub/grub.cfg << 'GRUBCFG'
+          set timeout=5
+          set default=0
+
+          menuentry "BusyBox Linux" {
+              linux /boot/vmlinuz quiet init=/init
+              initrd /boot/initramfs.cpio.gz
+          }
+          GRUBCFG
+
+          grub-mkrescue -o busybox.iso isoroot
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: busybox-iso
+          path: busybox.iso
