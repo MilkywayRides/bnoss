@@ -1,4 +1,4 @@
-name: Build bnoss Desktop ISO
+name: Build BlazeNeuro Desktop ISO
 
 on: [push, pull_request]
 
@@ -20,7 +20,7 @@ jobs:
             grub-common \
             mtools
 
-      - name: Build bnoss ISO
+      - name: Build BlazeNeuro ISO
         run: |
           chmod +x build-iso.sh
           sudo ./build-iso.sh
@@ -28,6 +28,6 @@ jobs:
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bnoss-desktop-iso
-          path: bnoss.iso
+          name: blazeneuro-desktop-iso
+          path: blazeneuro.iso
           compression-level: 0
