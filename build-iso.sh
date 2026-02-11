@@ -215,19 +215,19 @@ sudo chmod +x "$ROOTFS/usr/local/bin/install-blazeneuro"
 echo "=== Step 8: Create user account ==="
 sudo chroot "$ROOTFS" bash -c "
 useradd -m -s /bin/bash -G sudo,adm,cdrom,audio,video,plugdev user
-echo 'user:user' | chpasswd
+echo 'user:blazeneuro' | chpasswd
 echo 'root:root' | chpasswd
 # Allow user to use sudo without password
 echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user
 "
 
-echo "=== Step 9: Configure auto-login ==="
+echo "=== Step 9: Configure login screen ==="
 sudo mkdir -p "$ROOTFS/etc/lightdm/lightdm.conf.d"
-sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-autologin.conf" > /dev/null << EOF
+sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-login.conf" > /dev/null << EOF
 [Seat:*]
-autologin-user=user
-autologin-user-timeout=0
 user-session=blazeneuro
+greeter-hide-users=false
+greeter-show-manual-login=true
 EOF
 
 sudo chroot "$ROOTFS" systemctl set-default graphical.target

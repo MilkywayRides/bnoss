@@ -65,5 +65,10 @@ It also includes additional compatibility tooling:
 
 ## Default Credentials
 
-- **User**: `user` / `user` (sudo access)
+- **User**: `user` / `blazeneuro` (sudo access)
 - **Root**: `root` / `root`
+
+You can change your password after login with:
+```bash
+passwd
+```
