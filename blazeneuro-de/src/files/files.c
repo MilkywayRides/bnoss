@@ -28,7 +28,7 @@ enum {
 /* ── Populate Files ─────────────────────────────────────── */
 static void populate_files(const char *path) {
     gtk_list_store_clear(file_store);
-    strncpy(current_path, path, sizeof(current_path) - 1);
+    g_strlcpy(current_path, path, sizeof(current_path));
     gtk_label_set_text(GTK_LABEL(path_label), current_path);
 
     GDir *dir = g_dir_open(path, 0, NULL);
@@ -45,22 +45,24 @@ static void populate_files(const char *path) {
 
         /* Try to get a better icon based on extension */
         if (!is_dir) {
-            if (g_str_has_suffix(name, ".png") || g_str_has_suffix(name, ".jpg") ||
-                g_str_has_suffix(name, ".jpeg") || g_str_has_suffix(name, ".svg"))
+            gchar *name_lower = g_utf8_strdown(name, -1);
+            if (g_str_has_suffix(name_lower, ".png") || g_str_has_suffix(name_lower, ".jpg") ||
+                g_str_has_suffix(name_lower, ".jpeg") || g_str_has_suffix(name_lower, ".svg"))
                 icon_name = "image-x-generic";
-            else if (g_str_has_suffix(name, ".mp3") || g_str_has_suffix(name, ".wav") ||
-                     g_str_has_suffix(name, ".flac"))
+            else if (g_str_has_suffix(name_lower, ".mp3") || g_str_has_suffix(name_lower, ".wav") ||
+                     g_str_has_suffix(name_lower, ".flac"))
                 icon_name = "audio-x-generic";
-            else if (g_str_has_suffix(name, ".mp4") || g_str_has_suffix(name, ".mkv"))
+            else if (g_str_has_suffix(name_lower, ".mp4") || g_str_has_suffix(name_lower, ".mkv"))
                 icon_name = "video-x-generic";
-            else if (g_str_has_suffix(name, ".pdf"))
+            else if (g_str_has_suffix(name_lower, ".pdf"))
                 icon_name = "application-pdf";
-            else if (g_str_has_suffix(name, ".c") || g_str_has_suffix(name, ".py") ||
-                     g_str_has_suffix(name, ".js") || g_str_has_suffix(name, ".h"))
+            else if (g_str_has_suffix(name_lower, ".c") || g_str_has_suffix(name_lower, ".py") ||
+                     g_str_has_suffix(name_lower, ".js") || g_str_has_suffix(name_lower, ".h"))
                 icon_name = "text-x-script";
-            else if (g_str_has_suffix(name, ".zip") || g_str_has_suffix(name, ".tar") ||
-                     g_str_has_suffix(name, ".gz"))
+            else if (g_str_has_suffix(name_lower, ".zip") || g_str_has_suffix(name_lower, ".tar") ||
+                     g_str_has_suffix(name_lower, ".gz"))
                 icon_name = "package-x-generic";
+            g_free(name_lower);
         }
 
         GtkTreeIter iter;

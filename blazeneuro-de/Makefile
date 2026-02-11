@@ -10,12 +10,16 @@ PKG_X11 = $(shell pkg-config --cflags --libs x11)
 BINDIR = $(PREFIX)/bin
 SHAREDIR = $(PREFIX)/share/blazeneuro
 
-all: blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
+all: blazeneuro-wm blazeneuro-desktop blazeneuro-dock blazeneuro-topbar \
      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
-     blazeneuro-settings
+     blazeneuro-settings blazeneuro-notes blazeneuro-calculator \
+     blazeneuro-taskviewer
 
 blazeneuro-wm: src/wm/wm.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_X11)
+
+blazeneuro-desktop: src/desktop/desktop.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
 
 blazeneuro-dock: src/dock/dock.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK) -lX11
@@ -35,15 +39,28 @@ blazeneuro-launcher: src/launcher/launcher.c
 blazeneuro-settings: src/settings/settings.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
 
+blazeneuro-notes: src/notes/notes.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
+
+blazeneuro-calculator: src/calculator/calculator.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
+
+blazeneuro-taskviewer: src/tasks/tasks.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
+
 install: all
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 blazeneuro-wm $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-desktop $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-dock $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-topbar $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-terminal $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-files $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-launcher $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-settings $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-notes $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-calculator $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-taskviewer $(DESTDIR)$(BINDIR)/
 	install -d $(DESTDIR)$(SHAREDIR)
 	install -m 644 theme/blazeneuro.css $(DESTDIR)$(SHAREDIR)/
 	install -m 644 config/picom.conf $(DESTDIR)$(SHAREDIR)/
@@ -53,10 +70,16 @@ install: all
 	# Install Xsession entry
 	install -d $(DESTDIR)/usr/share/xsessions
 	install -m 644 config/blazeneuro.desktop $(DESTDIR)/usr/share/xsessions/
+	# Install app launchers
+	install -d $(DESTDIR)/usr/share/applications
+	install -m 644 config/blazeneuro-notes.desktop $(DESTDIR)/usr/share/applications/
+	install -m 644 config/blazeneuro-calculator.desktop $(DESTDIR)/usr/share/applications/
+	install -m 644 config/blazeneuro-taskviewer.desktop $(DESTDIR)/usr/share/applications/
 
 clean:
-	rm -f blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
+	rm -f blazeneuro-wm blazeneuro-desktop blazeneuro-dock blazeneuro-topbar \
 	      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
-	      blazeneuro-settings
+	      blazeneuro-settings blazeneuro-notes blazeneuro-calculator \
+	      blazeneuro-taskviewer
 
 .PHONY: all install clean

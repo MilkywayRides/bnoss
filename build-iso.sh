@@ -91,15 +91,28 @@ apt-get install -y \
     lightdm-gtk-greeter \
     lightdm-gtk-greeter-settings \
     gnome-calculator \
+    gnome-system-monitor \
     evince \
     mousepad \
-    gnome-disk-utility
+    gnome-disk-utility \
+    flatpak \
+    podman \
+    fuse3 \
+    libfuse2 \
+    wine64
+
+# distrobox is unavailable in some Ubuntu releases/repositories
+if apt-cache show distrobox >/dev/null 2>&1; then
+    apt-get install -y distrobox
+else
+    echo "[INFO] distrobox package not found for $DISTRO; skipping distrobox installation"
+fi
 "
 
 echo "=== Step 4: Install Chromium and VS Code ==="
 sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y chromium-browser || apt-get install -y chromium
+apt-get install -y chromium || apt-get install -y chromium-browser
 
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
 echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main' > /etc/apt/sources.list.d/vscode.list
@@ -202,19 +215,19 @@ sudo chmod +x "$ROOTFS/usr/local/bin/install-blazeneuro"
 echo "=== Step 8: Create user account ==="
 sudo chroot "$ROOTFS" bash -c "
 useradd -m -s /bin/bash -G sudo,adm,cdrom,audio,video,plugdev user
-echo 'user:user' | chpasswd
+echo 'user:blazeneuro' | chpasswd
 echo 'root:root' | chpasswd
 # Allow user to use sudo without password
 echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user
 "
 
-echo "=== Step 9: Configure auto-login ==="
+echo "=== Step 9: Configure login screen ==="
 sudo mkdir -p "$ROOTFS/etc/lightdm/lightdm.conf.d"
-sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-autologin.conf" > /dev/null << EOF
+sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-login.conf" > /dev/null << EOF
 [Seat:*]
-autologin-user=user
-autologin-user-timeout=0
 user-session=blazeneuro
+greeter-hide-users=false
+greeter-show-manual-login=true
 EOF
 
 sudo chroot "$ROOTFS" systemctl set-default graphical.target
