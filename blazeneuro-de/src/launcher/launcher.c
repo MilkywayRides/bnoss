@@ -21,6 +21,7 @@ typedef struct {
 static GList *all_apps = NULL;
 static GtkWidget *results_box;
 static GtkWidget *search_entry;
+static int selected_index = -1;
 
 static void free_app_entry(gpointer data) {
     AppEntry *entry = data;
@@ -30,6 +31,28 @@ static void free_app_entry(gpointer data) {
     g_free(entry->exec);
     g_free(entry->icon);
     g_free(entry);
+}
+
+/* ── Shared Theme Loader ───────────────────────────────── */
+static void load_theme(void) {
+    GtkCssProvider *css = gtk_css_provider_new();
+    const char *paths[] = {
+        "/usr/local/share/blazeneuro/blazeneuro.css",
+        "theme/blazeneuro.css",
+        "../theme/blazeneuro.css",
+        NULL
+    };
+    for (int i = 0; paths[i]; i++) {
+        if (g_file_test(paths[i], G_FILE_TEST_EXISTS)) {
+            gtk_css_provider_load_from_path(css, paths[i], NULL);
+            break;
+        }
+    }
+    gtk_style_context_add_provider_for_screen(
+        gdk_screen_get_default(),
+        GTK_STYLE_PROVIDER(css),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(css);
 }
 
 /* ── Load Desktop Entries ───────────────────────────────── */
@@ -103,6 +126,19 @@ static void launch_result(GtkWidget *btn, gpointer data) {
     gtk_main_quit();
 }
 
+/* ── Update Selection Highlight ─────────────────────────── */
+static void update_selection(void) {
+    GList *children = gtk_container_get_children(GTK_CONTAINER(results_box));
+    int i = 0;
+    for (GList *l = children; l; l = l->next, i++) {
+        GtkWidget *btn = GTK_WIDGET(l->data);
+        if (i == selected_index) {
+            gtk_widget_grab_focus(btn);
+        }
+    }
+    g_list_free(children);
+}
+
 /* ── Search Filter ──────────────────────────────────────── */
 static void on_search_changed(GtkEditable *editable, gpointer data) {
     (void)data;
@@ -113,6 +149,8 @@ static void on_search_changed(GtkEditable *editable, gpointer data) {
     for (GList *l = children; l; l = l->next)
         gtk_widget_destroy(GTK_WIDGET(l->data));
     g_list_free(children);
+
+    selected_index = -1;
 
     if (strlen(query) == 0) return;
 
@@ -131,73 +169,55 @@ static void on_search_changed(GtkEditable *editable, gpointer data) {
     }
     g_free(query_lower);
 
+    if (count > 0) selected_index = 0;
     gtk_widget_show_all(results_box);
 }
 
 /* ── Key Handler ────────────────────────────────────────── */
 static gboolean on_key_press(GtkWidget *widget, GdkEventKey *ev, gpointer data) {
     (void)widget; (void)data;
+
     if (ev->keyval == GDK_KEY_Escape) {
         gtk_main_quit();
         return TRUE;
     }
+
+    GList *children = gtk_container_get_children(GTK_CONTAINER(results_box));
+    int count = g_list_length(children);
+
+    if (ev->keyval == GDK_KEY_Down && count > 0) {
+        selected_index = (selected_index + 1) % count;
+        update_selection();
+        g_list_free(children);
+        return TRUE;
+    }
+
+    if (ev->keyval == GDK_KEY_Up && count > 0) {
+        selected_index = (selected_index - 1 + count) % count;
+        update_selection();
+        g_list_free(children);
+        return TRUE;
+    }
+
     if (ev->keyval == GDK_KEY_Return) {
-        /* Launch first result */
-        GList *children = gtk_container_get_children(GTK_CONTAINER(results_box));
-        if (children) {
+        if (selected_index >= 0 && selected_index < count) {
+            GtkWidget *btn = GTK_WIDGET(g_list_nth_data(children, selected_index));
+            launch_result(btn, NULL);
+        } else if (children) {
             launch_result(GTK_WIDGET(children->data), NULL);
-            g_list_free(children);
-            return TRUE;
         }
         g_list_free(children);
+        return TRUE;
     }
-    return FALSE;
-}
 
-/* ── CSS ────────────────────────────────────────────────── */
-static void apply_css(void) {
-    GtkCssProvider *css = gtk_css_provider_new();
-    const char *style =
-        "window {"
-        "  background-color: rgba(10, 10, 14, 0.85);"
-        "}"
-        ".search-box {"
-        "  background-color: rgba(24, 24, 28, 0.95);"
-        "  border: 1px solid rgba(255, 255, 255, 0.1);"
-        "  border-radius: 12px;"
-        "  padding: 12px 16px;"
-        "  color: #fafafa;"
-        "  font-family: 'Inter', sans-serif;"
-        "  font-size: 16px;"
-        "  caret-color: #3b82f6;"
-        "}"
-        ".search-box:focus {"
-        "  border-color: rgba(59, 130, 246, 0.5);"
-        "}"
-        ".result-btn {"
-        "  background-color: transparent;"
-        "  border: none;"
-        "  border-radius: 8px;"
-        "  color: #e4e4e7;"
-        "  padding: 6px 12px;"
-        "  font-family: 'Inter', sans-serif;"
-        "  font-size: 14px;"
-        "}"
-        ".result-btn:hover {"
-        "  background-color: rgba(59, 130, 246, 0.15);"
-        "}";
-    gtk_css_provider_load_from_data(css, style, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
+    g_list_free(children);
+    return FALSE;
 }
 
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    apply_css();
+    load_theme();
     load_apps();
 
     /* Overlay window */
@@ -213,6 +233,8 @@ int main(int argc, char *argv[]) {
     GdkVisual *vis = gdk_screen_get_rgba_visual(scr);
     if (vis) gtk_widget_set_visual(win, vis);
 
+    gtk_style_context_add_class(gtk_widget_get_style_context(win), "launcher-window");
+
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(win, "key-press-event", G_CALLBACK(on_key_press), NULL);
 
@@ -222,7 +244,7 @@ int main(int argc, char *argv[]) {
 
     /* Search entry */
     search_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Search applications...");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "  Search applications…");
     gtk_style_context_add_class(gtk_widget_get_style_context(search_entry), "search-box");
     g_signal_connect(search_entry, "changed", G_CALLBACK(on_search_changed), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), search_entry, FALSE, FALSE, 0);

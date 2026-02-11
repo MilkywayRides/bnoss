@@ -261,17 +261,7 @@ sudo umount "$ROOTFS/sys" || true
 echo "=== Step 13: Build live ISO ==="
 mkdir -p "$ISOROOT"/{boot/grub,live}
 
-VMLINUZ=$(ls "$ROOTFS"/boot/vmlinuz-* 2>/dev/null | head -1)
-INITRD=$(ls "$ROOTFS"/boot/initrd.img-* 2>/dev/null | head -1)
 
-if [ -z "$VMLINUZ" ] || [ -z "$INITRD" ]; then
-    echo "ERROR: Kernel or initrd not found!"
-    ls -la "$ROOTFS/boot/"
-    exit 1
-fi
-
-cp "$VMLINUZ" "$ISOROOT/boot/vmlinuz"
-cp "$INITRD" "$ISOROOT/boot/initrd.img"
 
 # Install live-boot
 sudo mount --bind /dev "$ROOTFS/dev"
@@ -292,6 +282,19 @@ sudo umount "$ROOTFS/proc" || true
 sudo umount "$ROOTFS/sys" || true
 
 # Create squashfs
+# Copy kernel and initrd (now that live-boot is installed)
+VMLINUZ=$(ls "$ROOTFS"/boot/vmlinuz-* 2>/dev/null | head -1)
+INITRD=$(ls "$ROOTFS"/boot/initrd.img-* 2>/dev/null | head -1)
+
+if [ -z "$VMLINUZ" ] || [ -z "$INITRD" ]; then
+    echo "ERROR: Kernel or initrd not found!"
+    ls -la "$ROOTFS/boot/"
+    exit 1
+fi
+
+cp "$VMLINUZ" "$ISOROOT/boot/vmlinuz"
+cp "$INITRD" "$ISOROOT/boot/initrd.img"
+
 sudo mksquashfs "$ROOTFS" "$ISOROOT/live/filesystem.squashfs" -comp xz -e boot
 
 # GRUB config

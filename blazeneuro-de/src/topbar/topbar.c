@@ -1,7 +1,7 @@
 /*
  * BlazeNeuro Top Bar
  * macOS-like menu bar at the top of the screen.
- * Shows system name, clock, and basic indicators.
+ * Shows system name, clock, and status indicators.
  * Written in C with GTK3.
  */
 
@@ -14,11 +14,34 @@
 
 #define BAR_HEIGHT 32
 
+/* ── Shared Theme Loader ───────────────────────────────── */
+static void load_theme(void) {
+    GtkCssProvider *css = gtk_css_provider_new();
+    const char *paths[] = {
+        "/usr/local/share/blazeneuro/blazeneuro.css",
+        "theme/blazeneuro.css",
+        "../theme/blazeneuro.css",
+        NULL
+    };
+    for (int i = 0; paths[i]; i++) {
+        if (g_file_test(paths[i], G_FILE_TEST_EXISTS)) {
+            gtk_css_provider_load_from_path(css, paths[i], NULL);
+            break;
+        }
+    }
+    gtk_style_context_add_provider_for_screen(
+        gdk_screen_get_default(),
+        GTK_STYLE_PROVIDER(css),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(css);
+}
+
 /* ── Clock Update ───────────────────────────────────────── */
 static gboolean update_clock(gpointer data) {
     GtkWidget *label = GTK_WIDGET(data);
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
+    if (!t) return TRUE;
     char buf[64];
     strftime(buf, sizeof(buf), "%a %b %d  %I:%M %p", t);
     gtk_label_set_text(GTK_LABEL(label), buf);
@@ -29,11 +52,13 @@ static gboolean update_clock(gpointer data) {
 static void on_realize(GtkWidget *widget, gpointer data) {
     (void)data;
     GdkWindow *gdk_win = gtk_widget_get_window(widget);
+    if (!gdk_win) return;
     GdkDisplay *display = gdk_window_get_display(gdk_win);
     Display *xdpy = gdk_x11_display_get_xdisplay(display);
     Window xwin = gdk_x11_window_get_xid(gdk_win);
 
     GdkMonitor *mon = gdk_display_get_primary_monitor(display);
+    if (!mon) return;
     GdkRectangle geom;
     gdk_monitor_get_geometry(mon, &geom);
 
@@ -47,44 +72,10 @@ static void on_realize(GtkWidget *widget, gpointer data) {
                     PropModeReplace, (unsigned char *)struts, 12);
 }
 
-/* ── CSS ────────────────────────────────────────────────── */
-static void apply_css(void) {
-    GtkCssProvider *css = gtk_css_provider_new();
-    const char *style =
-        "window {"
-        "  background-color: rgba(10, 10, 12, 0.85);"
-        "  border-bottom: 1px solid rgba(255, 255, 255, 0.06);"
-        "}"
-        ".topbar-label {"
-        "  color: #fafafa;"
-        "  font-family: 'Inter', 'Segoe UI', sans-serif;"
-        "  font-size: 13px;"
-        "  font-weight: 500;"
-        "}"
-        ".topbar-title {"
-        "  color: #fafafa;"
-        "  font-family: 'Inter', 'Segoe UI', sans-serif;"
-        "  font-size: 13px;"
-        "  font-weight: 700;"
-        "}"
-        ".topbar-clock {"
-        "  color: #a1a1aa;"
-        "  font-family: 'Inter', 'Segoe UI', sans-serif;"
-        "  font-size: 13px;"
-        "  font-weight: 400;"
-        "}";
-    gtk_css_provider_load_from_data(css, style, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
-}
-
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    apply_css();
+    load_theme();
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "BlazeNeuro Bar");
@@ -98,15 +89,17 @@ int main(int argc, char *argv[]) {
     GdkVisual *vis = gdk_screen_get_rgba_visual(scr);
     if (vis) gtk_widget_set_visual(win, vis);
 
+    gtk_style_context_add_class(gtk_widget_get_style_context(win), "topbar");
+
     g_signal_connect(win, "realize", G_CALLBACK(on_realize), NULL);
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-    /* Layout: [Logo/Title] ---- [Clock] */
+    /* Layout: [Logo/Title] ---- [Status] [Clock] */
     GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add(GTK_CONTAINER(win), hbox);
 
     /* Left: BlazeNeuro title */
-    GtkWidget *title = gtk_label_new("  🔥 BlazeNeuro");
+    GtkWidget *title = gtk_label_new("  BlazeNeuro");
     gtk_style_context_add_class(gtk_widget_get_style_context(title), "topbar-title");
     gtk_widget_set_margin_start(title, 12);
     gtk_box_pack_start(GTK_BOX(hbox), title, FALSE, FALSE, 0);
@@ -126,6 +119,10 @@ int main(int argc, char *argv[]) {
 
     /* Position at top */
     GdkMonitor *mon = gdk_display_get_primary_monitor(gdk_display_get_default());
+    if (!mon) {
+        fprintf(stderr, "BlazeNeuro Bar: No primary monitor found\n");
+        return 1;
+    }
     GdkRectangle geom;
     gdk_monitor_get_geometry(mon, &geom);
 

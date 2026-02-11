@@ -1,4 +1,25 @@
-/* BlazeNeuro GTK3 Theme — shadcn-inspired dark with transparency */
+/*
+ * BlazeNeuro GTK3 Theme
+ * shadcn/ui default dark theme (zinc palette)
+ *
+ * Token reference:
+ *   --background:         #09090b   hsl(240 10% 3.9%)
+ *   --foreground:         #fafafa   hsl(0 0% 98%)
+ *   --card:               #09090b
+ *   --muted:              #27272a   hsl(240 3.7% 15.9%)
+ *   --muted-foreground:   #a1a1aa   hsl(240 5% 64.9%)
+ *   --border / --input:   #27272a
+ *   --primary:            #fafafa
+ *   --primary-foreground: #18181b
+ *   --secondary:          #27272a
+ *   --secondary-fg:       #fafafa
+ *   --accent:             #27272a
+ *   --accent-fg:          #fafafa
+ *   --destructive:        #7f1d1d   hsl(0 62.8% 30.6%)
+ *   --destructive-fg:     #fafafa
+ *   --ring:               #d4d4d8   hsl(240 4.9% 83.9%)
+ *   --radius:             8px  (0.5rem)
+ */
 
 /* ── Global ─────────────────────────────────────────────── */
 * {
@@ -9,27 +30,27 @@
 
 /* ── Window ─────────────────────────────────────────────── */
 window {
-    background-color: rgba(10, 10, 14, 0.92);
+    background-color: rgba(9, 9, 11, 0.92);
     color: #fafafa;
 }
 
 decoration {
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* ── Header Bar ─────────────────────────────────────────── */
 headerbar {
-    background-color: rgba(18, 18, 22, 0.95);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: rgba(9, 9, 11, 0.95);
+    border-bottom: 1px solid #27272a;
     min-height: 38px;
     padding: 0 8px;
     border-radius: 12px 12px 0 0;
 }
 
 headerbar .title {
-    color: #e4e4e7;
+    color: #fafafa;
     font-weight: 600;
     font-size: 13px;
 }
@@ -37,7 +58,7 @@ headerbar .title {
 headerbar button {
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     color: #a1a1aa;
     min-width: 28px;
     min-height: 28px;
@@ -45,15 +66,15 @@ headerbar button {
 }
 
 headerbar button:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: #27272a;
     color: #fafafa;
 }
 
-/* ── Buttons ────────────────────────────────────────────── */
+/* ── Buttons — secondary (default) ──────────────────────── */
 button {
-    background-color: rgba(39, 39, 42, 0.8);
+    background-color: #27272a;
     color: #fafafa;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 6px 16px;
     min-height: 32px;
@@ -63,47 +84,88 @@ button {
 }
 
 button:hover {
-    background-color: rgba(63, 63, 70, 0.9);
-    border-color: rgba(255, 255, 255, 0.15);
+    background-color: #3f3f46;
 }
 
 button:active {
-    background-color: rgba(39, 39, 42, 1.0);
+    background-color: #27272a;
 }
 
-button.destructive-action {
-    background-color: rgba(239, 68, 68, 0.8);
-    border-color: rgba(239, 68, 68, 0.3);
+button:focus {
+    box-shadow: 0 0 0 2px rgba(212, 212, 216, 0.4);
 }
 
-button.suggested-action {
-    background-color: rgba(59, 130, 246, 0.8);
-    border-color: rgba(59, 130, 246, 0.3);
+/* ── Primary button ─────────────────────────────────────── */
+button.suggested-action,
+button.primary-btn {
+    background-color: #fafafa;
+    color: #18181b;
+    border-color: #fafafa;
 }
 
-button.suggested-action:hover {
-    background-color: rgba(59, 130, 246, 1.0);
+button.suggested-action:hover,
+button.primary-btn:hover {
+    background-color: #e4e4e7;
+}
+
+/* ── Destructive button ─────────────────────────────────── */
+button.destructive-action,
+button.destructive-btn {
+    background-color: #7f1d1d;
+    color: #fafafa;
+    border-color: #7f1d1d;
+}
+
+button.destructive-action:hover,
+button.destructive-btn:hover {
+    background-color: #991b1b;
+}
+
+/* ── Ghost button ───────────────────────────────────────── */
+button.ghost-btn,
+button.flat {
+    background-color: transparent;
+    border-color: transparent;
+    color: #fafafa;
+}
+
+button.ghost-btn:hover,
+button.flat:hover {
+    background-color: #27272a;
 }
 
 /* ── Entry / Input ──────────────────────────────────────── */
 entry {
-    background-color: rgba(24, 24, 28, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #09090b;
+    border: 1px solid #27272a;
     border-radius: 8px;
     color: #fafafa;
     padding: 6px 12px;
     min-height: 32px;
-    caret-color: #3b82f6;
+    caret-color: #fafafa;
     font-size: 13px;
 }
 
 entry:focus {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    border-color: #d4d4d8;
+    box-shadow: 0 0 0 2px rgba(212, 212, 216, 0.3);
 }
 
 entry selection {
-    background-color: rgba(59, 130, 246, 0.4);
+    background-color: rgba(250, 250, 250, 0.2);
+}
+
+/* ── Text View ──────────────────────────────────────────── */
+textview,
+textview text {
+    background-color: #09090b;
+    color: #fafafa;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+}
+
+textview border {
+    background-color: #09090b;
 }
 
 /* ── Scrollbar ──────────────────────────────────────────── */
@@ -112,14 +174,14 @@ scrollbar {
 }
 
 scrollbar slider {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: #27272a;
     border-radius: 999px;
     min-width: 6px;
     min-height: 6px;
 }
 
 scrollbar slider:hover {
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: #3f3f46;
 }
 
 scrollbar.overlay-indicator:not(.dragging):not(.hovering) slider {
@@ -129,15 +191,17 @@ scrollbar.overlay-indicator:not(.dragging):not(.hovering) slider {
 
 /* ── Labels ─────────────────────────────────────────────── */
 label {
-    color: #e4e4e7;
+    color: #fafafa;
 }
 
-label.dim-label {
-    color: #71717a;
+label.dim-label,
+label.muted {
+    color: #a1a1aa;
 }
 
 /* ── Lists ──────────────────────────────────────────────── */
-list, listbox {
+list,
+listbox {
     background-color: transparent;
 }
 
@@ -148,39 +212,70 @@ row {
 }
 
 row:selected {
-    background-color: rgba(59, 130, 246, 0.2);
+    background-color: #27272a;
 }
 
 row:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(39, 39, 42, 0.5);
+}
+
+/* ── Tree View ──────────────────────────────────────────── */
+treeview {
+    background-color: transparent;
+    color: #fafafa;
+}
+
+treeview header button {
+    background-color: #09090b;
+    color: #a1a1aa;
+    border-bottom: 1px solid #27272a;
+    border-radius: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+}
+
+treeview:selected {
+    background-color: #27272a;
+    color: #fafafa;
 }
 
 /* ── Menus ───────────────────────────────────────────────── */
-menu, .menu {
-    background-color: rgba(24, 24, 28, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+menu,
+.menu {
+    background-color: rgba(9, 9, 11, 0.95);
+    border: 1px solid #27272a;
+    border-radius: 8px;
     padding: 4px;
 }
 
 menuitem {
     border-radius: 6px;
     padding: 6px 12px;
-    color: #e4e4e7;
+    color: #fafafa;
     font-size: 13px;
 }
 
 menuitem:hover {
-    background-color: rgba(59, 130, 246, 0.15);
+    background-color: #27272a;
     color: #fafafa;
+}
+
+separator {
+    background-color: #27272a;
+    min-height: 1px;
+    min-width: 1px;
+    margin: 4px 0;
 }
 
 /* ── Tooltips ───────────────────────────────────────────── */
 tooltip {
-    background-color: rgba(24, 24, 28, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #09090b;
+    border: 1px solid #27272a;
     border-radius: 8px;
-    color: #e4e4e7;
+    color: #fafafa;
     padding: 6px 10px;
     font-size: 12px;
 }
@@ -191,13 +286,13 @@ notebook {
 }
 
 notebook header {
-    background-color: rgba(18, 18, 22, 0.9);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: #09090b;
+    border-bottom: 1px solid #27272a;
 }
 
 notebook tab {
     background-color: transparent;
-    color: #71717a;
+    color: #a1a1aa;
     padding: 8px 16px;
     border: none;
     font-size: 13px;
@@ -206,16 +301,16 @@ notebook tab {
 
 notebook tab:checked {
     color: #fafafa;
-    border-bottom: 2px solid #3b82f6;
+    border-bottom: 2px solid #fafafa;
 }
 
 notebook tab:hover {
-    color: #a1a1aa;
+    color: #d4d4d8;
 }
 
 /* ── Switch ─────────────────────────────────────────────── */
 switch {
-    background-color: rgba(63, 63, 70, 0.8);
+    background-color: #27272a;
     border-radius: 999px;
     min-width: 40px;
     min-height: 22px;
@@ -223,7 +318,7 @@ switch {
 }
 
 switch:checked {
-    background-color: rgba(59, 130, 246, 0.9);
+    background-color: #fafafa;
 }
 
 switch slider {
@@ -234,15 +329,19 @@ switch slider {
     margin: 2px;
 }
 
+switch:checked slider {
+    background-color: #18181b;
+}
+
 /* ── Scale / Slider ─────────────────────────────────────── */
 scale trough {
-    background-color: rgba(39, 39, 42, 0.8);
+    background-color: #27272a;
     border-radius: 999px;
     min-height: 4px;
 }
 
 scale highlight {
-    background-color: #3b82f6;
+    background-color: #fafafa;
     border-radius: 999px;
 }
 
@@ -256,8 +355,8 @@ scale slider {
 /* ── Check / Radio ──────────────────────────────────────── */
 checkbutton check,
 radiobutton radio {
-    background-color: rgba(39, 39, 42, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: #09090b;
+    border: 1px solid #27272a;
     border-radius: 4px;
     min-width: 18px;
     min-height: 18px;
@@ -269,23 +368,319 @@ radiobutton radio {
 
 checkbutton check:checked,
 radiobutton radio:checked {
-    background-color: rgba(59, 130, 246, 0.9);
-    border-color: #3b82f6;
+    background-color: #fafafa;
+    border-color: #fafafa;
+    color: #18181b;
+}
+
+/* ── Frame (card style) ─────────────────────────────────── */
+frame {
+    background-color: transparent;
+    border: none;
 }
 
 /* ── Dialog ─────────────────────────────────────────────── */
 dialog {
-    background-color: rgba(18, 18, 22, 0.95);
+    background-color: rgba(9, 9, 11, 0.95);
     border-radius: 12px;
 }
 
 messagedialog {
-    background-color: rgba(18, 18, 22, 0.95);
+    background-color: rgba(9, 9, 11, 0.95);
 }
 
-/* ── Separator ──────────────────────────────────────────── */
-separator {
-    background-color: rgba(255, 255, 255, 0.06);
-    min-height: 1px;
-    min-width: 1px;
+/* ── Combo box ──────────────────────────────────────────── */
+combobox button {
+    background-color: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    color: #fafafa;
+    padding: 6px 12px;
+}
+
+combobox button:hover {
+    background-color: #27272a;
+}
+
+/* ── Progress bar ───────────────────────────────────────── */
+progressbar trough {
+    background-color: #27272a;
+    border-radius: 999px;
+    min-height: 8px;
+}
+
+progressbar progress {
+    background-color: #fafafa;
+    border-radius: 999px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   App-specific classes
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Top Bar ────────────────────────────────────────────── */
+.topbar {
+    background-color: rgba(9, 9, 11, 0.85);
+    border-bottom: 1px solid #27272a;
+}
+
+.topbar-title {
+    color: #fafafa;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.topbar-label {
+    color: #fafafa;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.topbar-clock {
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* ── Dock ────────────────────────────────────────────────── */
+.dock-window {
+    background-color: rgba(9, 9, 11, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+}
+
+.dock-button {
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 48px;
+    min-height: 48px;
+    transition: all 200ms ease;
+}
+
+.dock-button:hover {
+    background-color: #27272a;
+}
+
+/* ── Launcher ───────────────────────────────────────────── */
+.launcher-window {
+    background-color: rgba(9, 9, 11, 0.85);
+}
+
+.search-box {
+    background-color: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #fafafa;
+    font-size: 16px;
+    caret-color: #fafafa;
+}
+
+.search-box:focus {
+    border-color: #d4d4d8;
+    box-shadow: 0 0 0 2px rgba(212, 212, 216, 0.3);
+}
+
+.result-btn {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #fafafa;
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+.result-btn:hover {
+    background-color: #27272a;
+}
+
+/* ── Sidebar (Files / Settings) ─────────────────────────── */
+.sidebar {
+    background-color: rgba(9, 9, 11, 0.95);
+    border-right: 1px solid #27272a;
+    padding: 8px 0;
+}
+
+.sidebar row {
+    color: #a1a1aa;
+    border-radius: 8px;
+    margin: 1px 6px;
+    padding: 6px 10px;
+}
+
+.sidebar row:selected {
+    background-color: #27272a;
+    color: #fafafa;
+}
+
+.sidebar row:hover {
+    background-color: rgba(39, 39, 42, 0.5);
+}
+
+/* ── Path Bar ───────────────────────────────────────────── */
+.pathbar {
+    background-color: #09090b;
+    border-bottom: 1px solid #27272a;
+    padding: 8px 16px;
+    color: #a1a1aa;
+    font-size: 13px;
+}
+
+/* ── Content Area ───────────────────────────────────────── */
+.content-area {
+    background-color: transparent;
+}
+
+iconview {
+    background-color: transparent;
+    color: #fafafa;
+    font-size: 12px;
+}
+
+iconview:selected {
+    background-color: #27272a;
+    border-radius: 8px;
+}
+
+/* ── Settings ───────────────────────────────────────────── */
+.settings-section {
+    background-color: rgba(9, 9, 11, 0.8);
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    margin: 8px 16px;
+}
+
+.section-title {
+    color: #fafafa;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.setting-label {
+    color: #a1a1aa;
+    font-size: 13px;
+}
+
+label.header {
+    color: #fafafa;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+/* ── Calculator ─────────────────────────────────────────── */
+.calc-display {
+    background-color: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: #fafafa;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 28px;
+    font-weight: 400;
+}
+
+.calc-display-expr {
+    color: #a1a1aa;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 14px;
+}
+
+.calc-btn {
+    background-color: #27272a;
+    color: #fafafa;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    min-height: 48px;
+    min-width: 60px;
+    padding: 8px;
+}
+
+.calc-btn:hover {
+    background-color: #3f3f46;
+}
+
+.calc-btn-op {
+    background-color: #27272a;
+    color: #fafafa;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    min-height: 48px;
+}
+
+.calc-btn-op:hover {
+    background-color: #3f3f46;
+}
+
+.calc-btn-equals {
+    background-color: #fafafa;
+    color: #18181b;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 48px;
+}
+
+.calc-btn-equals:hover {
+    background-color: #e4e4e7;
+}
+
+.calc-btn-clear {
+    background-color: #7f1d1d;
+    color: #fafafa;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    min-height: 48px;
+}
+
+.calc-btn-clear:hover {
+    background-color: #991b1b;
+}
+
+/* ── Notes ──────────────────────────────────────────────── */
+.notes-text {
+    background-color: #09090b;
+    color: #fafafa;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    padding: 16px;
+}
+
+.notes-text text {
+    background-color: #09090b;
+    color: #fafafa;
+}
+
+.notes-statusbar {
+    background-color: #09090b;
+    border-top: 1px solid #27272a;
+    padding: 4px 12px;
+    color: #a1a1aa;
+    font-size: 12px;
+}
+
+/* ── Task Viewer ────────────────────────────────────────── */
+.task-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #27272a;
+}
+
+.task-header label {
+    color: #fafafa;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* ── Scrolled Window ────────────────────────────────────── */
+scrolledwindow {
+    background-color: transparent;
 }
