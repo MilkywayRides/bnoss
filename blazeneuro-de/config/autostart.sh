@@ -25,6 +25,8 @@ fi
 picom --config "$SHARE_DIR/picom.conf" -b 2>/dev/null || picom -b &
 
 # ── Start desktop components ───────────────────────────
+blazeneuro-desktop &
+sleep 0.3
 blazeneuro-topbar &
 sleep 0.3
 blazeneuro-dock &

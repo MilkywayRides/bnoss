@@ -10,13 +10,16 @@ PKG_X11 = $(shell pkg-config --cflags --libs x11)
 BINDIR = $(PREFIX)/bin
 SHAREDIR = $(PREFIX)/share/blazeneuro
 
-all: blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
+all: blazeneuro-wm blazeneuro-desktop blazeneuro-dock blazeneuro-topbar \
      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
      blazeneuro-settings blazeneuro-notes blazeneuro-calculator \
      blazeneuro-taskviewer
 
 blazeneuro-wm: src/wm/wm.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_X11)
+
+blazeneuro-desktop: src/desktop/desktop.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
 
 blazeneuro-dock: src/dock/dock.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK) -lX11
@@ -48,6 +51,7 @@ blazeneuro-taskviewer: src/tasks/tasks.c
 install: all
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 blazeneuro-wm $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-desktop $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-dock $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-topbar $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-terminal $(DESTDIR)$(BINDIR)/
@@ -73,7 +77,7 @@ install: all
 	install -m 644 config/blazeneuro-taskviewer.desktop $(DESTDIR)/usr/share/applications/
 
 clean:
-	rm -f blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
+	rm -f blazeneuro-wm blazeneuro-desktop blazeneuro-dock blazeneuro-topbar \
 	      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
 	      blazeneuro-settings blazeneuro-notes blazeneuro-calculator \
 	      blazeneuro-taskviewer

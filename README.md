@@ -6,7 +6,7 @@ A fully functional Ubuntu-based desktop Linux distro built via GitHub Actions.
 
 | Category | Software |
 |---|---|
-| Desktop | BlazeNeuro DE (custom GTK shell with shadcn-inspired default styling) |
+| Desktop | BlazeNeuro DE (custom GTK shell with desktop view, right-click context menu, and wallpaper customization) |
 | Browser | Chromium |
 | Code Editor | Visual Studio Code |
 | File Manager | BlazeNeuro Files |
