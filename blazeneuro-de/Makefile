@@ -12,7 +12,7 @@ SHAREDIR = $(PREFIX)/share/blazeneuro
 
 all: blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
-     blazeneuro-settings
+     blazeneuro-settings blazeneuro-notes
 
 blazeneuro-wm: src/wm/wm.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_X11)
@@ -35,6 +35,9 @@ blazeneuro-launcher: src/launcher/launcher.c
 blazeneuro-settings: src/settings/settings.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
 
+blazeneuro-notes: src/notes/notes.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
+
 install: all
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 blazeneuro-wm $(DESTDIR)$(BINDIR)/
@@ -44,6 +47,7 @@ install: all
 	install -m 755 blazeneuro-files $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-launcher $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-settings $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-notes $(DESTDIR)$(BINDIR)/
 	install -d $(DESTDIR)$(SHAREDIR)
 	install -m 644 theme/blazeneuro.css $(DESTDIR)$(SHAREDIR)/
 	install -m 644 config/picom.conf $(DESTDIR)$(SHAREDIR)/
@@ -57,6 +61,6 @@ install: all
 clean:
 	rm -f blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
 	      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
-	      blazeneuro-settings
+	      blazeneuro-settings blazeneuro-notes
 
 .PHONY: all install clean

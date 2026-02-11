@@ -6,7 +6,7 @@ A fully functional Ubuntu-based desktop Linux distro built via GitHub Actions.
 
 | Category | Software |
 |---|---|
-| Desktop | XFCE4 with Arc-Dark theme & Papirus icons |
+| Desktop | BlazeNeuro DE (custom GTK shell with shadcn-inspired default styling) |
 | Browser | Chromium |
 | Code Editor | Visual Studio Code |
 | File Manager | Thunar |
@@ -14,7 +14,7 @@ A fully functional Ubuntu-based desktop Linux distro built via GitHub Actions.
 | Software Center | GNOME Software (install apps via GUI) |
 | Package Managers | apt, snap |
 | Dev Tools | git, python3, build-essential |
-| Utilities | htop, neofetch, calculator, screenshot, task manager |
+| Utilities | htop, neofetch, calculator, notes app, screenshot, task manager |
 
 ## Download
 
@@ -49,6 +49,19 @@ sudo snap install spotify
 # Via GUI
 # Open "Software Center" from the desktop
 ```
+
+## Linux App Compatibility
+
+BlazeNeuro is Ubuntu-based, so it can run most Ubuntu GUI/CLI apps directly with `apt`.
+
+It also includes additional compatibility tooling:
+- **Snap** for sandboxed app packages
+- **Flatpak** for cross-distro desktop apps
+- **Distrobox + Podman** to run apps from other distros (for example Kali userland tools)
+- **Wine** for many Windows executables
+- **FUSE/AppImage support** via `fuse3` and `libfuse2`
+
+> Note: Kernel modules/drivers and apps requiring a specific host distro init stack may still need manual setup.
 
 ## Default Credentials
 

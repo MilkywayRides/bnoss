@@ -6,6 +6,7 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
+#include <X11/Xatom.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,12 +26,14 @@ typedef struct {
 static DockApp dock_apps[] = {
     { "Files",       "blazeneuro-files",    "system-file-manager" },
     { "Terminal",    "blazeneuro-terminal",  "utilities-terminal" },
-    { "Chromium",    "chromium-browser --no-sandbox", "chromium-browser" },
-    { "VS Code",     "code --no-sandbox",   "com.visualstudio.code" },
+    { "Chromium",    "chromium-browser", "chromium-browser" },
+    { "VS Code",     "code",   "com.visualstudio.code" },
     { "Settings",    "blazeneuro-settings",  "preferences-system" },
     { "Software",    "gnome-software",       "org.gnome.Software" },
     { "Text Editor", "mousepad",             "accessories-text-editor" },
     { "Calculator",  "gnome-calculator",     "accessories-calculator" },
+    { "Notes",       "blazeneuro-notes",      "accessories-text-editor" },
+    { "Monitor",     "gnome-system-monitor",  "utilities-system-monitor" },
     { NULL, NULL, NULL }
 };
 

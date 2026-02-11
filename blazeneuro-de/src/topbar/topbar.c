@@ -7,6 +7,7 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
+#include <X11/Xatom.h>
 #include <time.h>
 #include <string.h>
 #include <stdio.h>

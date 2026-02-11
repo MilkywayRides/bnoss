@@ -91,15 +91,22 @@ apt-get install -y \
     lightdm-gtk-greeter \
     lightdm-gtk-greeter-settings \
     gnome-calculator \
+    gnome-system-monitor \
     evince \
     mousepad \
-    gnome-disk-utility
+    gnome-disk-utility \
+    flatpak \
+    podman \
+    distrobox \
+    fuse3 \
+    libfuse2 \
+    wine64
 "
 
 echo "=== Step 4: Install Chromium and VS Code ==="
 sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y chromium-browser || apt-get install -y chromium
+apt-get install -y chromium || apt-get install -y chromium-browser
 
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
 echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main' > /etc/apt/sources.list.d/vscode.list

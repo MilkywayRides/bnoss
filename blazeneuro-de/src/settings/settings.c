@@ -10,9 +10,8 @@
 
 /* ── Apply Wallpaper ────────────────────────────────────── */
 static void set_wallpaper(const char *path) {
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "feh --bg-fill '%s' &", path);
-    system(cmd);
+    gchar *argv[] = { "feh", "--bg-fill", (gchar *)path, NULL };
+    g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
 
     /* Save preference */
     const char *home = g_get_home_dir();

@@ -6,12 +6,14 @@
 
 #include <gtk/gtk.h>
 #include <gio/gio.h>
+#include <gio/gdesktopappinfo.h>
 #include <string.h>
 #include <stdlib.h>
 
 /* ── App Entry ──────────────────────────────────────────── */
 typedef struct {
     char *name;
+    char *name_lower;
     char *exec;
     char *icon;
 } AppEntry;
@@ -20,16 +22,34 @@ static GList *all_apps = NULL;
 static GtkWidget *results_box;
 static GtkWidget *search_entry;
 
+static void free_app_entry(gpointer data) {
+    AppEntry *entry = data;
+    if (!entry) return;
+    g_free(entry->name);
+    g_free(entry->name_lower);
+    g_free(entry->exec);
+    g_free(entry->icon);
+    g_free(entry);
+}
+
 /* ── Load Desktop Entries ───────────────────────────────── */
 static void load_apps(void) {
     GList *apps = g_app_info_get_all();
+    GHashTable *seen_ids = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+
     for (GList *l = apps; l != NULL; l = l->next) {
         GAppInfo *info = G_APP_INFO(l->data);
         if (!g_app_info_should_show(info)) continue;
 
+        const char *app_id = g_app_info_get_id(info);
+        if (!app_id || g_hash_table_contains(seen_ids, app_id)) continue;
+        g_hash_table_add(seen_ids, g_strdup(app_id));
+
         AppEntry *entry = g_malloc0(sizeof(AppEntry));
-        entry->name = g_strdup(g_app_info_get_display_name(info));
-        entry->exec = g_strdup(g_app_info_get_id(info));
+        const char *display_name = g_app_info_get_display_name(info);
+        entry->name = g_strdup(display_name ? display_name : app_id);
+        entry->name_lower = g_utf8_strdown(entry->name, -1);
+        entry->exec = g_strdup(app_id);
 
         GIcon *gicon = g_app_info_get_icon(info);
         if (gicon) {
@@ -39,8 +59,11 @@ static void load_apps(void) {
             entry->icon = g_strdup("application-x-executable");
         }
 
-        all_apps = g_list_append(all_apps, entry);
+        all_apps = g_list_prepend(all_apps, entry);
     }
+    all_apps = g_list_reverse(all_apps);
+
+    g_hash_table_destroy(seen_ids);
     g_list_free_full(apps, g_object_unref);
 }
 
@@ -98,15 +121,13 @@ static void on_search_changed(GtkEditable *editable, gpointer data) {
 
     for (GList *l = all_apps; l && count < 8; l = l->next) {
         AppEntry *entry = l->data;
-        char *name_lower = g_utf8_strdown(entry->name, -1);
 
-        if (strstr(name_lower, query_lower)) {
+        if (strstr(entry->name_lower, query_lower)) {
             GtkWidget *row = create_result(entry);
             g_signal_connect(row, "clicked", G_CALLBACK(launch_result), NULL);
             gtk_box_pack_start(GTK_BOX(results_box), row, FALSE, FALSE, 0);
             count++;
         }
-        g_free(name_lower);
     }
     g_free(query_lower);
 
@@ -213,6 +234,8 @@ int main(int argc, char *argv[]) {
     gtk_widget_show_all(win);
     gtk_widget_grab_focus(search_entry);
     gtk_main();
+
+    g_list_free_full(all_apps, free_app_entry);
 
     return 0;
 }
