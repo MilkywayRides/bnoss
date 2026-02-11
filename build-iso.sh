@@ -97,10 +97,16 @@ apt-get install -y \
     gnome-disk-utility \
     flatpak \
     podman \
-    distrobox \
     fuse3 \
     libfuse2 \
     wine64
+
+# distrobox is unavailable in some Ubuntu releases/repositories
+if apt-cache show distrobox >/dev/null 2>&1; then
+    apt-get install -y distrobox
+else
+    echo "[INFO] distrobox package not found for $DISTRO; skipping distrobox installation"
+fi
 "
 
 echo "=== Step 4: Install Chromium and VS Code ==="
