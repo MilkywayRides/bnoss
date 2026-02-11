@@ -114,7 +114,6 @@ apt-get install -y \
     vainfo \
     intel-media-va-driver \
     \
-    firmware-linux-free \
     linux-firmware \
     \
     xserver-xorg-input-libinput \
@@ -152,7 +151,7 @@ apt-get install -y \
 if apt-cache show distrobox >/dev/null 2>&1; then
     apt-get install -y distrobox
 else
-    echo "[INFO] distrobox package not found for $DISTRO; skipping distrobox installation"
+    echo '[INFO] distrobox package not available; skipping'
 fi
 "
 
