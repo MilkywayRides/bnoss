@@ -2,7 +2,7 @@
 
 PREFIX ?= /usr/local
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
+CFLAGS = -Wall -Wextra -O2 -flto -fstack-protector-strong -D_FORTIFY_SOURCE=2
 PKG_GTK = $(shell pkg-config --cflags --libs gtk+-3.0 gdk-3.0)
 PKG_VTE = $(shell pkg-config --cflags --libs vte-2.91)
 PKG_X11 = $(shell pkg-config --cflags --libs x11)

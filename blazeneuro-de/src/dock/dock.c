@@ -1,6 +1,6 @@
 /*
  * BlazeNeuro Dock
- * macOS-like bottom dock with app icons, hover effects, and tooltips.
+ * macOS-like bottom dock with app icons and hover effects.
  * Written in C with GTK3.
  */
 
@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include "../common/theme.h"
 
 #define DOCK_HEIGHT  64
 #define ICON_SIZE    48
@@ -24,17 +26,16 @@ typedef struct {
 } DockApp;
 
 static DockApp dock_apps[] = {
-    { "Files",       "blazeneuro-files",    "system-file-manager" },
+    { "Files",       "blazeneuro-files",     "system-file-manager" },
     { "Terminal",    "blazeneuro-terminal",  "utilities-terminal" },
-    { "Chromium",    "chromium-browser", "chromium-browser" },
-    { "VS Code",     "code",   "com.visualstudio.code" },
+    { "Chromium",    "chromium-browser",     "chromium-browser" },
+    { "VS Code",     "code",                "com.visualstudio.code" },
     { "Settings",    "blazeneuro-settings",  "preferences-system" },
     { "Software",    "gnome-software",       "org.gnome.Software" },
     { "Text Editor", "mousepad",             "accessories-text-editor" },
-    { "Calculator",  "blazeneuro-calculator",     "accessories-calculator" },
-    { "Notes",       "blazeneuro-notes",      "accessories-text-editor" },
-    { "Task Viewer", "blazeneuro-taskviewer", "utilities-system-monitor" },
-    { "System Monitor", "gnome-system-monitor",  "utilities-system-monitor" },
+    { "Calculator",  "blazeneuro-calculator","accessories-calculator" },
+    { "Notes",       "blazeneuro-notes",     "accessories-text-editor" },
+    { "Task Viewer", "blazeneuro-taskviewer","utilities-system-monitor" },
     { NULL, NULL, NULL }
 };
 
@@ -42,36 +43,22 @@ static DockApp dock_apps[] = {
 static void launch_app(GtkWidget *widget, gpointer data) {
     (void)widget;
     const char *cmd = (const char *)data;
-    gchar *full_cmd;
-    full_cmd = g_strdup_printf("%s &", cmd);
+    gchar *full_cmd = g_strdup_printf("%s &", cmd);
     g_spawn_command_line_async(full_cmd, NULL);
     g_free(full_cmd);
-}
-
-/* ── Hover Effects ──────────────────────────────────────── */
-static gboolean on_hover_enter(GtkWidget *widget, GdkEventCrossing *ev, gpointer data) {
-    (void)ev; (void)data;
-    /* Scale up on hover */
-    gtk_widget_set_size_request(widget, ICON_SIZE + 12, ICON_SIZE + 12);
-    return FALSE;
-}
-
-static gboolean on_hover_leave(GtkWidget *widget, GdkEventCrossing *ev, gpointer data) {
-    (void)ev; (void)data;
-    gtk_widget_set_size_request(widget, ICON_SIZE, ICON_SIZE);
-    return FALSE;
 }
 
 /* ── Set Window as Dock Type ────────────────────────────── */
 static void on_realize(GtkWidget *widget, gpointer data) {
     (void)data;
     GdkWindow *gdk_win = gtk_widget_get_window(widget);
+    if (!gdk_win) return;
     GdkDisplay *display = gdk_window_get_display(gdk_win);
     Display *xdpy = gdk_x11_display_get_xdisplay(display);
     Window xwin = gdk_x11_window_get_xid(gdk_win);
 
-    /* Set struts so WM reserves space */
     GdkMonitor *mon = gdk_display_get_primary_monitor(display);
+    if (!mon) return;
     GdkRectangle geom;
     gdk_monitor_get_geometry(mon, &geom);
 
@@ -85,39 +72,10 @@ static void on_realize(GtkWidget *widget, gpointer data) {
                     PropModeReplace, (unsigned char *)struts, 12);
 }
 
-/* ── CSS Styling ────────────────────────────────────────── */
-static void apply_css(void) {
-    GtkCssProvider *css = gtk_css_provider_new();
-    const char *style =
-        "window {"
-        "  background-color: rgba(20, 20, 22, 0.75);"
-        "  border-radius: 16px;"
-        "  border: 1px solid rgba(255, 255, 255, 0.08);"
-        "}"
-        ".dock-button {"
-        "  background: transparent;"
-        "  border: none;"
-        "  border-radius: 12px;"
-        "  padding: 6px;"
-        "  transition: all 200ms ease;"
-        "  min-width: 48px;"
-        "  min-height: 48px;"
-        "}"
-        ".dock-button:hover {"
-        "  background-color: rgba(255, 255, 255, 0.1);"
-        "}";
-    gtk_css_provider_load_from_data(css, style, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
-}
-
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    apply_css();
+    blazeneuro_load_theme();
 
     /* Create dock window */
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -132,6 +90,8 @@ int main(int argc, char *argv[]) {
     GdkScreen *scr = gtk_widget_get_screen(win);
     GdkVisual *vis = gdk_screen_get_rgba_visual(scr);
     if (vis) gtk_widget_set_visual(win, vis);
+
+    gtk_style_context_add_class(gtk_widget_get_style_context(win), "dock-window");
 
     g_signal_connect(win, "realize", G_CALLBACK(on_realize), NULL);
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -152,14 +112,15 @@ int main(int argc, char *argv[]) {
         gtk_container_add(GTK_CONTAINER(btn), icon);
 
         g_signal_connect(btn, "clicked", G_CALLBACK(launch_app), (gpointer)dock_apps[i].exec);
-        g_signal_connect(btn, "enter-notify-event", G_CALLBACK(on_hover_enter), NULL);
-        g_signal_connect(btn, "leave-notify-event", G_CALLBACK(on_hover_leave), NULL);
-
         gtk_box_pack_start(GTK_BOX(box), btn, FALSE, FALSE, 0);
     }
 
     /* Position at bottom center */
     GdkMonitor *mon = gdk_display_get_primary_monitor(gdk_display_get_default());
+    if (!mon) {
+        fprintf(stderr, "BlazeNeuro Dock: No primary monitor found\n");
+        return 1;
+    }
     GdkRectangle geom;
     gdk_monitor_get_geometry(mon, &geom);
 

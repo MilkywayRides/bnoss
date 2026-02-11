@@ -45,6 +45,8 @@ sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y \
     linux-image-generic \
+    linux-headers-generic \
+    linux-firmware \
     systemd \
     systemd-sysv \
     sudo \
@@ -99,13 +101,57 @@ apt-get install -y \
     podman \
     fuse3 \
     libfuse2 \
-    wine64
+    wine64 \
+    \
+    mesa-utils \
+    mesa-vulkan-drivers \
+    libgl1-mesa-dri \
+    xserver-xorg-video-intel \
+    xserver-xorg-video-amdgpu \
+    xserver-xorg-video-nouveau \
+    xserver-xorg-video-fbdev \
+    xserver-xorg-video-vesa \
+    vainfo \
+    intel-media-va-driver \
+    \
+    linux-firmware \
+    \
+    xserver-xorg-input-libinput \
+    xserver-xorg-input-synaptics \
+    xserver-xorg-input-evdev \
+    xserver-xorg-input-wacom \
+    \
+    pulseaudio \
+    pulseaudio-utils \
+    pavucontrol \
+    alsa-utils \
+    \
+    bluez \
+    blueman \
+    \
+    cups \
+    cups-browsed \
+    system-config-printer \
+    \
+    ntfs-3g \
+    exfat-fuse \
+    exfatprogs \
+    dosfstools \
+    btrfs-progs \
+    e2fsprogs \
+    xfsprogs \
+    \
+    usb-modeswitch \
+    usbutils \
+    pciutils \
+    lshw \
+    inxi
 
 # distrobox is unavailable in some Ubuntu releases/repositories
 if apt-cache show distrobox >/dev/null 2>&1; then
     apt-get install -y distrobox
 else
-    echo "[INFO] distrobox package not found for $DISTRO; skipping distrobox installation"
+    echo '[INFO] distrobox package not available; skipping'
 fi
 "
 
@@ -261,17 +307,7 @@ sudo umount "$ROOTFS/sys" || true
 echo "=== Step 13: Build live ISO ==="
 mkdir -p "$ISOROOT"/{boot/grub,live}
 
-VMLINUZ=$(ls "$ROOTFS"/boot/vmlinuz-* 2>/dev/null | head -1)
-INITRD=$(ls "$ROOTFS"/boot/initrd.img-* 2>/dev/null | head -1)
 
-if [ -z "$VMLINUZ" ] || [ -z "$INITRD" ]; then
-    echo "ERROR: Kernel or initrd not found!"
-    ls -la "$ROOTFS/boot/"
-    exit 1
-fi
-
-cp "$VMLINUZ" "$ISOROOT/boot/vmlinuz"
-cp "$INITRD" "$ISOROOT/boot/initrd.img"
 
 # Install live-boot
 sudo mount --bind /dev "$ROOTFS/dev"
@@ -292,6 +328,19 @@ sudo umount "$ROOTFS/proc" || true
 sudo umount "$ROOTFS/sys" || true
 
 # Create squashfs
+# Copy kernel and initrd (now that live-boot is installed)
+VMLINUZ=$(ls "$ROOTFS"/boot/vmlinuz-* 2>/dev/null | head -1)
+INITRD=$(ls "$ROOTFS"/boot/initrd.img-* 2>/dev/null | head -1)
+
+if [ -z "$VMLINUZ" ] || [ -z "$INITRD" ]; then
+    echo "ERROR: Kernel or initrd not found!"
+    ls -la "$ROOTFS/boot/"
+    exit 1
+fi
+
+cp "$VMLINUZ" "$ISOROOT/boot/vmlinuz"
+cp "$INITRD" "$ISOROOT/boot/initrd.img"
+
 sudo mksquashfs "$ROOTFS" "$ISOROOT/live/filesystem.squashfs" -comp xz -e boot
 
 # GRUB config

@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../common/theme.h"
+
 /* ── Globals ────────────────────────────────────────────── */
 static GtkWidget *icon_view;
 static GtkWidget *path_label;
@@ -24,7 +26,6 @@ enum {
     COL_IS_DIR,
     NUM_COLS
 };
-
 /* ── Populate Files ─────────────────────────────────────── */
 static void populate_files(const char *path) {
     gtk_list_store_clear(file_store);
@@ -141,76 +142,10 @@ static GtkWidget *create_sidebar_row(const char *label, const char *icon_name, c
     return row;
 }
 
-/* ── CSS ────────────────────────────────────────────────── */
-static void apply_css(void) {
-    GtkCssProvider *css = gtk_css_provider_new();
-    const char *style =
-        "window {"
-        "  background-color: rgba(14, 14, 18, 0.92);"
-        "}"
-        ".sidebar {"
-        "  background-color: rgba(18, 18, 22, 0.95);"
-        "  border-right: 1px solid rgba(255, 255, 255, 0.06);"
-        "  padding: 8px 0;"
-        "}"
-        ".sidebar row {"
-        "  color: #a1a1aa;"
-        "  border-radius: 8px;"
-        "  margin: 1px 6px;"
-        "  padding: 4px 8px;"
-        "}"
-        ".sidebar row:selected {"
-        "  background-color: rgba(59, 130, 246, 0.2);"
-        "  color: #fafafa;"
-        "}"
-        ".sidebar row:hover {"
-        "  background-color: rgba(255, 255, 255, 0.05);"
-        "}"
-        ".pathbar {"
-        "  background-color: rgba(24, 24, 28, 0.9);"
-        "  border-bottom: 1px solid rgba(255, 255, 255, 0.06);"
-        "  padding: 8px 16px;"
-        "  color: #a1a1aa;"
-        "  font-family: 'Inter', sans-serif;"
-        "  font-size: 13px;"
-        "}"
-        ".content-area {"
-        "  background-color: transparent;"
-        "}"
-        "iconview {"
-        "  background-color: transparent;"
-        "  color: #e4e4e7;"
-        "  font-family: 'Inter', sans-serif;"
-        "  font-size: 12px;"
-        "}"
-        "iconview:selected {"
-        "  background-color: rgba(59, 130, 246, 0.3);"
-        "  border-radius: 8px;"
-        "}"
-        "button {"
-        "  background-color: rgba(39, 39, 42, 0.8);"
-        "  color: #fafafa;"
-        "  border: 1px solid rgba(255, 255, 255, 0.1);"
-        "  border-radius: 6px;"
-        "  padding: 4px 12px;"
-        "  font-family: 'Inter', sans-serif;"
-        "  min-height: 28px;"
-        "}"
-        "button:hover {"
-        "  background-color: rgba(63, 63, 70, 0.9);"
-        "}";
-    gtk_css_provider_load_from_data(css, style, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
-}
-
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    apply_css();
+    blazeneuro_load_theme();
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "Files");
@@ -275,6 +210,7 @@ int main(int argc, char *argv[]) {
     gtk_box_pack_start(GTK_BOX(pathbar), home_btn, FALSE, FALSE, 0);
 
     path_label = gtk_label_new("");
+    gtk_style_context_add_class(gtk_widget_get_style_context(path_label), "muted");
     gtk_label_set_xalign(GTK_LABEL(path_label), 0);
     gtk_label_set_ellipsize(GTK_LABEL(path_label), PANGO_ELLIPSIZE_START);
     gtk_box_pack_start(GTK_BOX(pathbar), path_label, TRUE, TRUE, 0);

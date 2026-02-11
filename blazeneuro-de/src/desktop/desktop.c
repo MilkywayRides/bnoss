@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../common/theme.h"
+
 static GtkWidget *desktop_win;
 static GtkWidget *desktop_image;
 
@@ -32,10 +34,18 @@ static gboolean apply_wallpaper_file(const char *path) {
         return FALSE;
     }
 
-    gint screen_w = gdk_screen_width();
-    gint screen_h = gdk_screen_height();
+    /* Use GdkMonitor API instead of deprecated gdk_screen_width/height */
+    GdkDisplay *display = gdk_display_get_default();
+    GdkMonitor *mon = gdk_display_get_primary_monitor(display);
+    if (!mon) {
+        g_object_unref(pixbuf);
+        return FALSE;
+    }
+    GdkRectangle geom;
+    gdk_monitor_get_geometry(mon, &geom);
+
     GdkPixbuf *scaled = gdk_pixbuf_scale_simple(
-        pixbuf, screen_w, screen_h, GDK_INTERP_BILINEAR);
+        pixbuf, geom.width, geom.height, GDK_INTERP_BILINEAR);
 
     g_object_unref(pixbuf);
     if (!scaled) return FALSE;
@@ -92,8 +102,10 @@ static void choose_wallpaper(GtkWidget *widget, gpointer data) {
 
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        apply_wallpaper_file(filename);
-        g_free(filename);
+        if (filename) {
+            apply_wallpaper_file(filename);
+            g_free(filename);
+        }
     }
     gtk_widget_destroy(dialog);
 }
@@ -129,7 +141,7 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *ev, gpointer 
         GtkWidget *terminal_item = gtk_menu_item_new_with_label("Open Terminal");
         GtkWidget *settings_item = gtk_menu_item_new_with_label("Open Settings");
         GtkWidget *sep = gtk_separator_menu_item_new();
-        GtkWidget *wallpaper_item = gtk_menu_item_new_with_label("Change Wallpaper...");
+        GtkWidget *wallpaper_item = gtk_menu_item_new_with_label("Change Wallpaper…");
 
         g_signal_connect(files_item, "activate", G_CALLBACK(open_files), NULL);
         g_signal_connect(terminal_item, "activate", G_CALLBACK(open_terminal), NULL);
@@ -152,6 +164,7 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *ev, gpointer 
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
+    blazeneuro_load_theme();
 
     desktop_win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(desktop_win), "BlazeNeuro Desktop");
