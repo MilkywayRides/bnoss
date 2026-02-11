@@ -27,8 +27,8 @@ sudo debootstrap --arch=amd64 "$DISTRO" "$ROOTFS" http://archive.ubuntu.com/ubun
 echo "=== Step 2: Configure chroot ==="
 sudo mount --bind /dev "$ROOTFS/dev"
 sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
-sudo mount -t proc proc "$ROOTFS/proc"
-sudo mount -t sysfs sysfs "$ROOTFS/sys"
+sudo mount --bind /proc "$ROOTFS/proc"
+sudo mount --bind /sys "$ROOTFS/sys"
 
 # Full apt sources
 sudo tee "$ROOTFS/etc/apt/sources.list" > /dev/null << EOF
@@ -222,8 +222,8 @@ sudo cp "/tmp/$KERNEL_TARBALL" "$ROOTFS/tmp/"
 
 sudo mount --bind /dev "$ROOTFS/dev"
 sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
-sudo mount -t proc proc "$ROOTFS/proc"
-sudo mount -t sysfs sysfs "$ROOTFS/sys"
+sudo mount --bind /proc "$ROOTFS/proc"
+sudo mount --bind /sys "$ROOTFS/sys"
 
 sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
@@ -465,8 +465,8 @@ mkdir -p "$ISOROOT"/{boot/grub,live}
 # Install live-boot
 sudo mount --bind /dev "$ROOTFS/dev"
 sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
-sudo mount -t proc proc "$ROOTFS/proc"
-sudo mount -t sysfs sysfs "$ROOTFS/sys"
+sudo mount --bind /proc "$ROOTFS/proc"
+sudo mount --bind /sys "$ROOTFS/sys"
 
 sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
