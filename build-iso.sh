@@ -1,14 +1,27 @@
 #!/bin/bash
 set -e
 
-# BlazeNeuro Desktop OS Build Script
-# Creates a fully functional Ubuntu-based desktop ISO with custom C-based DE
+# ╔══════════════════════════════════════════════════════════╗
+# ║  BlazeNeuro OS — Build Script                           ║
+# ║  Custom Linux distribution with kernel from kernel.org  ║
+# ║  Change KERNEL_URL below to update the kernel version.  ║
+# ╚══════════════════════════════════════════════════════════╝
 
+# ── Configuration ──────────────────────────────────────────
+#    Change this URL to upgrade/downgrade the Linux kernel
+KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.11.tar.xz"
+
+OS_NAME="BlazeNeuro"
+OS_VERSION="1.0"
+OS_CODENAME="nova"
 ROOTFS="./rootfs"
 ISOROOT="./isoroot"
-DISTRO="jammy"  # Ubuntu 22.04
+DISTRO="jammy"  # Base package repository (Debian/Ubuntu for apt packages only)
+# ───────────────────────────────────────────────────────────
 
-echo "=== Step 1: Bootstrap Ubuntu base system ==="
+echo "=== Step 1: Bootstrap base system (package repository) ==="
+echo "Using $DISTRO packages for userspace libraries only."
+echo "Kernel will be compiled from: $KERNEL_URL"
 sudo debootstrap --arch=amd64 "$DISTRO" "$ROOTFS" http://archive.ubuntu.com/ubuntu
 
 echo "=== Step 2: Configure chroot ==="
@@ -40,12 +53,52 @@ locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 "
 
-echo "=== Step 3: Install kernel and core system ==="
+echo "=== Step 2b: Brand as $OS_NAME ==="
+# Override OS identity files
+sudo tee "$ROOTFS/etc/os-release" > /dev/null << OSREL
+NAME="$OS_NAME"
+VERSION="$OS_VERSION ($OS_CODENAME)"
+ID=blazeneuro
+ID_LIKE=debian
+VERSION_ID=$OS_VERSION
+VERSION_CODENAME=$OS_CODENAME
+PRETTY_NAME="$OS_NAME $OS_VERSION"
+HOME_URL="https://github.com/MilkywayRides/bnoss"
+SUPPORT_URL="https://github.com/MilkywayRides/bnoss/issues"
+OSREL
+
+sudo tee "$ROOTFS/etc/lsb-release" > /dev/null << LSBREL
+DISTRIB_ID=$OS_NAME
+DISTRIB_RELEASE=$OS_VERSION
+DISTRIB_CODENAME=$OS_CODENAME
+DISTRIB_DESCRIPTION="$OS_NAME $OS_VERSION"
+LSBREL
+
+# Login banners
+echo "$OS_NAME $OS_VERSION \\n \\l" | sudo tee "$ROOTFS/etc/issue" > /dev/null
+echo "$OS_NAME $OS_VERSION" | sudo tee "$ROOTFS/etc/issue.net" > /dev/null
+
+# Custom MOTD
+sudo rm -rf "$ROOTFS/etc/update-motd.d"/*
+sudo tee "$ROOTFS/etc/update-motd.d/00-blazeneuro" > /dev/null << 'MOTD'
+#!/bin/bash
+echo ""
+echo "  ╔══════════════════════════════════════╗"
+echo "  ║   Welcome to BlazeNeuro OS           ║"
+echo "  ║   Type 'neofetch' for system info    ║"
+echo "  ╚══════════════════════════════════════╝"
+echo ""
+MOTD
+sudo chmod +x "$ROOTFS/etc/update-motd.d/00-blazeneuro"
+
+# Remove Ubuntu legal notice and help URL
+sudo rm -f "$ROOTFS/etc/legal" 2>/dev/null
+sudo rm -f "$ROOTFS/etc/default/motd-news" 2>/dev/null
+
+echo "=== Step 3: Install core system packages ==="
 sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y \
-    linux-image-generic \
-    linux-headers-generic \
     linux-firmware \
     systemd \
     systemd-sysv \
@@ -154,6 +207,95 @@ else
     echo '[INFO] distrobox package not available; skipping'
 fi
 "
+
+echo "=== Step 3b: Compile custom Linux kernel from kernel.org ==="
+KERNEL_TARBALL="$(basename "$KERNEL_URL")"
+KERNEL_DIR="$(basename "$KERNEL_TARBALL" .tar.xz)"
+
+# Download kernel source
+if [ ! -f "/tmp/$KERNEL_TARBALL" ]; then
+    echo "Downloading kernel from $KERNEL_URL ..."
+    wget -q --show-progress -O "/tmp/$KERNEL_TARBALL" "$KERNEL_URL"
+fi
+
+sudo cp "/tmp/$KERNEL_TARBALL" "$ROOTFS/tmp/"
+
+sudo mount --bind /dev "$ROOTFS/dev"
+sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
+sudo mount -t proc proc "$ROOTFS/proc"
+sudo mount -t sysfs sysfs "$ROOTFS/sys"
+
+sudo chroot "$ROOTFS" bash -c "
+export DEBIAN_FRONTEND=noninteractive
+
+# Install kernel build dependencies
+apt-get install -y \
+    build-essential bc bison flex libssl-dev libelf-dev \
+    cpio kmod initramfs-tools dwarves
+
+cd /tmp
+tar xf $KERNEL_TARBALL
+cd $KERNEL_DIR
+
+# Use default config optimized for desktop
+make defconfig
+
+# Enable essential desktop features
+scripts/config --enable CONFIG_SMP
+scripts/config --enable CONFIG_MODULES
+scripts/config --enable CONFIG_MODULE_UNLOAD
+scripts/config --enable CONFIG_DRM
+scripts/config --enable CONFIG_DRM_I915
+scripts/config --enable CONFIG_DRM_AMDGPU
+scripts/config --enable CONFIG_DRM_NOUVEAU
+scripts/config --enable CONFIG_DRM_FBDEV_EMULATION
+scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE
+scripts/config --enable CONFIG_FB_VESA
+scripts/config --enable CONFIG_SOUND
+scripts/config --enable CONFIG_SND
+scripts/config --enable CONFIG_SND_HDA_INTEL
+scripts/config --enable CONFIG_USB
+scripts/config --enable CONFIG_USB_XHCI_HCD
+scripts/config --enable CONFIG_USB_EHCI_HCD
+scripts/config --enable CONFIG_INPUT_EVDEV
+scripts/config --enable CONFIG_EXT4_FS
+scripts/config --enable CONFIG_BTRFS_FS
+scripts/config --enable CONFIG_NTFS3_FS
+scripts/config --enable CONFIG_VFAT_FS
+scripts/config --enable CONFIG_FUSE_FS
+scripts/config --enable CONFIG_SQUASHFS
+scripts/config --enable CONFIG_OVERLAY_FS
+scripts/config --enable CONFIG_BLK_DEV_LOOP
+scripts/config --enable CONFIG_NETFILTER
+scripts/config --enable CONFIG_WIRELESS
+scripts/config --enable CONFIG_CFG80211
+scripts/config --enable CONFIG_MAC80211
+scripts/config --enable CONFIG_BT
+scripts/config --set-str CONFIG_DEFAULT_HOSTNAME blazeneuro
+scripts/config --set-str CONFIG_LOCALVERSION -blazeneuro
+
+# Build kernel (use all available cores)
+make -j\$(nproc)
+
+# Install modules and kernel
+make modules_install
+make install
+
+# Generate initramfs for our kernel
+KVER=\$(make kernelrelease)
+update-initramfs -c -k \$KVER
+
+# Clean up source
+cd /tmp
+rm -rf $KERNEL_DIR $KERNEL_TARBALL
+"
+
+sudo umount "$ROOTFS/dev/pts" || true
+sudo umount "$ROOTFS/dev" || true
+sudo umount "$ROOTFS/proc" || true
+sudo umount "$ROOTFS/sys" || true
+
+echo "Custom kernel compiled and installed."
 
 echo "=== Step 4: Install Chromium and VS Code ==="
 sudo chroot "$ROOTFS" bash -c "
@@ -269,12 +411,23 @@ echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user
 
 echo "=== Step 9: Configure login screen ==="
 sudo mkdir -p "$ROOTFS/etc/lightdm/lightdm.conf.d"
-sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-login.conf" > /dev/null << EOF
+sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-blazeneuro.conf" > /dev/null << EOF
 [Seat:*]
+autologin-user=user
+autologin-user-timeout=0
 user-session=blazeneuro
+greeter-session=lightdm-gtk-greeter
 greeter-hide-users=false
-greeter-show-manual-login=true
 EOF
+
+# Brand the LightDM greeter
+sudo tee "$ROOTFS/etc/lightdm/lightdm-gtk-greeter.conf" > /dev/null << 'GREETER'
+[greeter]
+theme-name = Adwaita-dark
+icon-theme-name = Papirus-Dark
+font-name = Inter 11
+background = #09090b
+GREETER
 
 sudo chroot "$ROOTFS" systemctl set-default graphical.target
 
