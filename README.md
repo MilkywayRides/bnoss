@@ -9,12 +9,12 @@ A fully functional Ubuntu-based desktop Linux distro built via GitHub Actions.
 | Desktop | BlazeNeuro DE (custom GTK shell with shadcn-inspired default styling) |
 | Browser | Chromium |
 | Code Editor | Visual Studio Code |
-| File Manager | Thunar |
-| Terminal | xfce4-terminal |
+| File Manager | BlazeNeuro Files |
+| Terminal | BlazeNeuro Terminal |
 | Software Center | GNOME Software (install apps via GUI) |
-| Package Managers | apt, snap |
+| Package Managers | apt, snap, flatpak |
 | Dev Tools | git, python3, build-essential |
-| Utilities | htop, neofetch, calculator, notes app, screenshot, task manager |
+| Utilities | htop, neofetch, BlazeNeuro Calculator, BlazeNeuro Notes, Task Viewer, screenshot, task manager |
 
 ## Download
 

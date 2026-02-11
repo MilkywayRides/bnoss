@@ -12,7 +12,8 @@ SHAREDIR = $(PREFIX)/share/blazeneuro
 
 all: blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
-     blazeneuro-settings blazeneuro-notes
+     blazeneuro-settings blazeneuro-notes blazeneuro-calculator \
+     blazeneuro-taskviewer
 
 blazeneuro-wm: src/wm/wm.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_X11)
@@ -38,6 +39,12 @@ blazeneuro-settings: src/settings/settings.c
 blazeneuro-notes: src/notes/notes.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
 
+blazeneuro-calculator: src/calculator/calculator.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
+
+blazeneuro-taskviewer: src/tasks/tasks.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
+
 install: all
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 blazeneuro-wm $(DESTDIR)$(BINDIR)/
@@ -48,6 +55,8 @@ install: all
 	install -m 755 blazeneuro-launcher $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-settings $(DESTDIR)$(BINDIR)/
 	install -m 755 blazeneuro-notes $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-calculator $(DESTDIR)$(BINDIR)/
+	install -m 755 blazeneuro-taskviewer $(DESTDIR)$(BINDIR)/
 	install -d $(DESTDIR)$(SHAREDIR)
 	install -m 644 theme/blazeneuro.css $(DESTDIR)$(SHAREDIR)/
 	install -m 644 config/picom.conf $(DESTDIR)$(SHAREDIR)/
@@ -57,10 +66,16 @@ install: all
 	# Install Xsession entry
 	install -d $(DESTDIR)/usr/share/xsessions
 	install -m 644 config/blazeneuro.desktop $(DESTDIR)/usr/share/xsessions/
+	# Install app launchers
+	install -d $(DESTDIR)/usr/share/applications
+	install -m 644 config/blazeneuro-notes.desktop $(DESTDIR)/usr/share/applications/
+	install -m 644 config/blazeneuro-calculator.desktop $(DESTDIR)/usr/share/applications/
+	install -m 644 config/blazeneuro-taskviewer.desktop $(DESTDIR)/usr/share/applications/
 
 clean:
 	rm -f blazeneuro-wm blazeneuro-dock blazeneuro-topbar \
 	      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
-	      blazeneuro-settings blazeneuro-notes
+	      blazeneuro-settings blazeneuro-notes blazeneuro-calculator \
+	      blazeneuro-taskviewer
 
 .PHONY: all install clean

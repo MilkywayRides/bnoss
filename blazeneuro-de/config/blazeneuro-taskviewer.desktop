@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=BlazeNeuro Task Viewer
+Comment=View running processes
+Exec=blazeneuro-taskviewer
+Icon=utilities-system-monitor
+Terminal=false
+Type=Application
+Categories=System;Monitor;

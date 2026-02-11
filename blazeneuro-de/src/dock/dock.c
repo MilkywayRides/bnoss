@@ -31,9 +31,10 @@ static DockApp dock_apps[] = {
     { "Settings",    "blazeneuro-settings",  "preferences-system" },
     { "Software",    "gnome-software",       "org.gnome.Software" },
     { "Text Editor", "mousepad",             "accessories-text-editor" },
-    { "Calculator",  "gnome-calculator",     "accessories-calculator" },
+    { "Calculator",  "blazeneuro-calculator",     "accessories-calculator" },
     { "Notes",       "blazeneuro-notes",      "accessories-text-editor" },
-    { "Monitor",     "gnome-system-monitor",  "utilities-system-monitor" },
+    { "Task Viewer", "blazeneuro-taskviewer", "utilities-system-monitor" },
+    { "System Monitor", "gnome-system-monitor",  "utilities-system-monitor" },
     { NULL, NULL, NULL }
 };
 
