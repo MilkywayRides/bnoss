@@ -1,4 +1,26 @@
+# Build artifacts
 *.iso
-visoroot/
+*.o
+isoroot/
 rootfs/
 blazeneuro-desktop-iso/
+
+# Compiled binaries (rebuild with make)
+blazeneuro-de/blazeneuro-wm
+blazeneuro-de/blazeneuro-desktop
+blazeneuro-de/blazeneuro-dock
+blazeneuro-de/blazeneuro-topbar
+blazeneuro-de/blazeneuro-terminal
+blazeneuro-de/blazeneuro-files
+blazeneuro-de/blazeneuro-launcher
+blazeneuro-de/blazeneuro-settings
+blazeneuro-de/blazeneuro-notes
+blazeneuro-de/blazeneuro-calculator
+blazeneuro-de/blazeneuro-taskviewer
+
+# IDE / Editor
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store

@@ -10,6 +10,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "../common/theme.h"
+
 static GtkWidget *display_label;
 static GtkWidget *expr_label;
 static char expression[512] = "";
@@ -18,27 +20,6 @@ static double stored_value = 0;
 static char pending_op = 0;
 static int new_input = 1;
 
-/* ── Shared Theme Loader ───────────────────────────────── */
-static void load_theme(void) {
-    GtkCssProvider *css = gtk_css_provider_new();
-    const char *paths[] = {
-        "/usr/local/share/blazeneuro/blazeneuro.css",
-        "theme/blazeneuro.css",
-        "../theme/blazeneuro.css",
-        NULL
-    };
-    for (int i = 0; paths[i]; i++) {
-        if (g_file_test(paths[i], G_FILE_TEST_EXISTS)) {
-            gtk_css_provider_load_from_path(css, paths[i], NULL);
-            break;
-        }
-    }
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
-}
 
 static void update_display(void) {
     gtk_label_set_text(GTK_LABEL(display_label), display_text);
@@ -156,7 +137,7 @@ static GtkWidget *make_btn(const char *label, const char *css_class,
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    load_theme();
+    blazeneuro_load_theme();
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "Calculator");

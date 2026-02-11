@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "../common/theme.h"
+
 /* ── App Entry ──────────────────────────────────────────── */
 typedef struct {
     char *name;
@@ -32,29 +34,6 @@ static void free_app_entry(gpointer data) {
     g_free(entry->icon);
     g_free(entry);
 }
-
-/* ── Shared Theme Loader ───────────────────────────────── */
-static void load_theme(void) {
-    GtkCssProvider *css = gtk_css_provider_new();
-    const char *paths[] = {
-        "/usr/local/share/blazeneuro/blazeneuro.css",
-        "theme/blazeneuro.css",
-        "../theme/blazeneuro.css",
-        NULL
-    };
-    for (int i = 0; paths[i]; i++) {
-        if (g_file_test(paths[i], G_FILE_TEST_EXISTS)) {
-            gtk_css_provider_load_from_path(css, paths[i], NULL);
-            break;
-        }
-    }
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
-}
-
 /* ── Load Desktop Entries ───────────────────────────────── */
 static void load_apps(void) {
     GList *apps = g_app_info_get_all();
@@ -217,7 +196,7 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *ev, gpointer data) 
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    load_theme();
+    blazeneuro_load_theme();
     load_apps();
 
     /* Overlay window */

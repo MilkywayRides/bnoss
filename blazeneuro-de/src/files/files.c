@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../common/theme.h"
+
 /* ── Globals ────────────────────────────────────────────── */
 static GtkWidget *icon_view;
 static GtkWidget *path_label;
@@ -24,29 +26,6 @@ enum {
     COL_IS_DIR,
     NUM_COLS
 };
-
-/* ── Shared Theme Loader ───────────────────────────────── */
-static void load_theme(void) {
-    GtkCssProvider *css = gtk_css_provider_new();
-    const char *paths[] = {
-        "/usr/local/share/blazeneuro/blazeneuro.css",
-        "theme/blazeneuro.css",
-        "../theme/blazeneuro.css",
-        NULL
-    };
-    for (int i = 0; paths[i]; i++) {
-        if (g_file_test(paths[i], G_FILE_TEST_EXISTS)) {
-            gtk_css_provider_load_from_path(css, paths[i], NULL);
-            break;
-        }
-    }
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(css);
-}
-
 /* ── Populate Files ─────────────────────────────────────── */
 static void populate_files(const char *path) {
     gtk_list_store_clear(file_store);
@@ -166,7 +145,7 @@ static GtkWidget *create_sidebar_row(const char *label, const char *icon_name, c
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    load_theme();
+    blazeneuro_load_theme();
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "Files");

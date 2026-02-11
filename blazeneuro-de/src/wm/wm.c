@@ -8,6 +8,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+#include <X11/XKBlib.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <stdlib.h>
@@ -283,7 +284,7 @@ static void handle_motion(XMotionEvent *ev) {
 }
 
 static void handle_key_press(XKeyEvent *ev) {
-    KeySym sym = XKeycodeToKeysym(dpy, ev->keycode, 0);
+    KeySym sym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 0);
 
     if (ev->state & Mod1Mask) {
         if (sym == XK_F4) {

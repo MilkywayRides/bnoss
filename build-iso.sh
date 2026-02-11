@@ -45,6 +45,8 @@ sudo chroot "$ROOTFS" bash -c "
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y \
     linux-image-generic \
+    linux-headers-generic \
+    linux-firmware \
     systemd \
     systemd-sysv \
     sudo \
@@ -99,7 +101,52 @@ apt-get install -y \
     podman \
     fuse3 \
     libfuse2 \
-    wine64
+    wine64 \
+    \
+    mesa-utils \
+    mesa-vulkan-drivers \
+    libgl1-mesa-dri \
+    xserver-xorg-video-intel \
+    xserver-xorg-video-amdgpu \
+    xserver-xorg-video-nouveau \
+    xserver-xorg-video-fbdev \
+    xserver-xorg-video-vesa \
+    vainfo \
+    intel-media-va-driver \
+    \
+    firmware-linux-free \
+    linux-firmware \
+    \
+    xserver-xorg-input-libinput \
+    xserver-xorg-input-synaptics \
+    xserver-xorg-input-evdev \
+    xserver-xorg-input-wacom \
+    \
+    pulseaudio \
+    pulseaudio-utils \
+    pavucontrol \
+    alsa-utils \
+    \
+    bluez \
+    blueman \
+    \
+    cups \
+    cups-browsed \
+    system-config-printer \
+    \
+    ntfs-3g \
+    exfat-fuse \
+    exfatprogs \
+    dosfstools \
+    btrfs-progs \
+    e2fsprogs \
+    xfsprogs \
+    \
+    usb-modeswitch \
+    usbutils \
+    pciutils \
+    lshw \
+    inxi
 
 # distrobox is unavailable in some Ubuntu releases/repositories
 if apt-cache show distrobox >/dev/null 2>&1; then
