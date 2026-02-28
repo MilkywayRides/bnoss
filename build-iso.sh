@@ -1,41 +1,90 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # ╔══════════════════════════════════════════════════════════╗
 # ║  BlazeNeuro OS — Build Script                           ║
-# ║  Custom Linux distribution with kernel from kernel.org  ║
-# ║  Change KERNEL_URL below to update the kernel version.  ║
+# ║  Debian Bookworm base with BlazeNeuro Desktop Environment║
 # ╚══════════════════════════════════════════════════════════╝
 
 # ── Configuration ──────────────────────────────────────────
-#    Change this URL to upgrade/downgrade the Linux kernel
-KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.11.tar.xz"
-
 OS_NAME="BlazeNeuro"
 OS_VERSION="1.0"
 OS_CODENAME="nova"
-ROOTFS="./rootfs"
-ISOROOT="./isoroot"
-DISTRO="jammy"  # Base package repository (Debian/Ubuntu for apt packages only)
+ROOTFS="$(pwd)/rootfs"
+ISOROOT="$(pwd)/isoroot"
+DISTRO="bookworm"
+MIRROR="http://deb.debian.org/debian"
+ISO_OUTPUT="blazeneuro.iso"
 # ───────────────────────────────────────────────────────────
 
-echo "=== Step 1: Bootstrap base system (package repository) ==="
-echo "Using $DISTRO packages for userspace libraries only."
-echo "Kernel will be compiled from: $KERNEL_URL"
-sudo debootstrap --arch=amd64 "$DISTRO" "$ROOTFS" http://archive.ubuntu.com/ubuntu
+CHROOT_MOUNTED=0
 
-echo "=== Step 2: Configure chroot ==="
-sudo mount --bind /dev "$ROOTFS/dev"
-sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
-sudo mount --bind /proc "$ROOTFS/proc"
-sudo mount --bind /sys "$ROOTFS/sys"
+# ── Helper Functions ───────────────────────────────────────
+mount_chroot() {
+    if [ "$CHROOT_MOUNTED" -eq 1 ]; then return; fi
+    echo "  → Mounting chroot filesystems..."
+    sudo mount --bind /dev "$ROOTFS/dev"
+    sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
+    sudo mount -t proc proc "$ROOTFS/proc"
+    sudo mount -t sysfs sysfs "$ROOTFS/sys"
+    CHROOT_MOUNTED=1
+}
 
-# Full apt sources
+umount_chroot() {
+    if [ "$CHROOT_MOUNTED" -eq 0 ]; then return; fi
+    echo "  → Unmounting chroot filesystems..."
+    sudo umount "$ROOTFS/dev/pts" 2>/dev/null || true
+    sudo umount "$ROOTFS/dev" 2>/dev/null || true
+    sudo umount "$ROOTFS/proc" 2>/dev/null || true
+    sudo umount "$ROOTFS/sys" 2>/dev/null || true
+    CHROOT_MOUNTED=0
+}
+
+cleanup() {
+    echo ""
+    echo "=== Cleanup ==="
+    umount_chroot
+}
+
+trap cleanup EXIT
+
+step_time() {
+    date +%s
+}
+
+print_step() {
+    local step_num="$1"
+    local step_name="$2"
+    echo ""
+    echo "══════════════════════════════════════════════════════"
+    echo "  Step $step_num: $step_name"
+    echo "══════════════════════════════════════════════════════"
+}
+
+run_chroot() {
+    sudo chroot "$ROOTFS" bash -c "
+export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C
+$1
+"
+}
+
+# ── Step 1: Bootstrap Debian base system ───────────────────
+START=$(step_time)
+print_step 1 "Bootstrap Debian $DISTRO base system"
+
+sudo debootstrap --arch=amd64 "$DISTRO" "$ROOTFS" "$MIRROR"
+
+echo "  ✓ Base system bootstrapped in $(( $(step_time) - START ))s"
+
+# ── Step 2: Configure chroot ──────────────────────────────
+print_step 2 "Configure chroot environment"
+
+# APT sources with main + contrib + non-free (for firmware)
 sudo tee "$ROOTFS/etc/apt/sources.list" > /dev/null << EOF
-deb http://archive.ubuntu.com/ubuntu $DISTRO main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu $DISTRO-updates main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu $DISTRO-security main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu $DISTRO-backports main restricted universe multiverse
+deb $MIRROR $DISTRO main contrib non-free non-free-firmware
+deb $MIRROR $DISTRO-updates main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security $DISTRO-security main contrib non-free non-free-firmware
 EOF
 
 echo "blazeneuro" | sudo tee "$ROOTFS/etc/hostname" > /dev/null
@@ -45,16 +94,21 @@ sudo tee "$ROOTFS/etc/hosts" > /dev/null << EOF
 127.0.1.1   blazeneuro
 EOF
 
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
+mount_chroot
+
+run_chroot "
 apt-get update
 apt-get install -y locales
-locale-gen en_US.UTF-8
+sed -i 's/# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen
+locale-gen
 update-locale LANG=en_US.UTF-8
 "
 
-echo "=== Step 2b: Brand as $OS_NAME ==="
-# Override OS identity files
+echo "  ✓ Chroot configured"
+
+# ── Step 3: Brand as BlazeNeuro ───────────────────────────
+print_step 3 "Brand as $OS_NAME"
+
 sudo tee "$ROOTFS/etc/os-release" > /dev/null << OSREL
 NAME="$OS_NAME"
 VERSION="$OS_VERSION ($OS_CODENAME)"
@@ -91,22 +145,25 @@ echo ""
 MOTD
 sudo chmod +x "$ROOTFS/etc/update-motd.d/00-blazeneuro"
 
-# Remove Ubuntu legal notice and help URL
-sudo rm -f "$ROOTFS/etc/legal" 2>/dev/null
-sudo rm -f "$ROOTFS/etc/default/motd-news" 2>/dev/null
+sudo rm -f "$ROOTFS/etc/legal" 2>/dev/null || true
 
-echo "=== Step 3: Install core system packages ==="
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
+echo "  ✓ Branding applied"
+
+# ── Step 4: Install core system packages ──────────────────
+print_step 4 "Install core system packages"
+START=$(step_time)
+
+run_chroot "
 apt-get install -y \
-    linux-firmware \
+    linux-image-amd64 \
+    firmware-linux-free \
+    live-boot \
     systemd \
     systemd-sysv \
     sudo \
     dbus \
     udev \
     network-manager \
-    nm-tray \
     iproute2 \
     iputils-ping \
     wget \
@@ -117,7 +174,7 @@ apt-get install -y \
     ca-certificates \
     apt-utils \
     software-properties-common \
-    gpg \
+    gnupg \
     apt-transport-https \
     git \
     python3 \
@@ -144,30 +201,22 @@ apt-get install -y \
     fonts-noto-color-emoji \
     lightdm \
     lightdm-gtk-greeter \
-    lightdm-gtk-greeter-settings \
     gnome-calculator \
     gnome-system-monitor \
     evince \
     mousepad \
     gnome-disk-utility \
     flatpak \
-    podman \
     fuse3 \
     libfuse2 \
-    wine64 \
     \
     mesa-utils \
     mesa-vulkan-drivers \
     libgl1-mesa-dri \
-    xserver-xorg-video-intel \
-    xserver-xorg-video-amdgpu \
-    xserver-xorg-video-nouveau \
-    xserver-xorg-video-fbdev \
-    xserver-xorg-video-vesa \
+    xserver-xorg-video-all \
     vainfo \
-    intel-media-va-driver \
     \
-    linux-firmware \
+    firmware-linux-free \
     \
     xserver-xorg-input-libinput \
     xserver-xorg-input-synaptics \
@@ -183,11 +232,9 @@ apt-get install -y \
     blueman \
     \
     cups \
-    cups-browsed \
     system-config-printer \
     \
     ntfs-3g \
-    exfat-fuse \
     exfatprogs \
     dosfstools \
     btrfs-progs \
@@ -198,136 +245,52 @@ apt-get install -y \
     usbutils \
     pciutils \
     lshw \
-    inxi
-
-# distrobox is unavailable in some Ubuntu releases/repositories
-if apt-cache show distrobox >/dev/null 2>&1; then
-    apt-get install -y distrobox
-else
-    echo '[INFO] distrobox package not available; skipping'
-fi
+    inxi \
+    \
+    grub-pc-bin \
+    grub-efi-amd64-bin \
+    grub-common
 "
 
-echo "=== Step 3b: Compile custom Linux kernel from kernel.org ==="
-KERNEL_TARBALL="$(basename "$KERNEL_URL")"
-KERNEL_DIR="$(basename "$KERNEL_TARBALL" .tar.xz)"
+echo "  ✓ Core packages installed in $(( $(step_time) - START ))s"
 
-# Download kernel source
-if [ ! -f "/tmp/$KERNEL_TARBALL" ]; then
-    echo "Downloading kernel from $KERNEL_URL ..."
-    wget -q --show-progress -O "/tmp/$KERNEL_TARBALL" "$KERNEL_URL"
-fi
+# ── Step 5: Install Chromium and VS Code ──────────────────
+print_step 5 "Install Chromium and VS Code"
+START=$(step_time)
 
-sudo cp "/tmp/$KERNEL_TARBALL" "$ROOTFS/tmp/"
+run_chroot "
+# Chromium from Debian repos
+apt-get install -y chromium || apt-get install -y chromium-browser || echo '[INFO] Chromium not available, skipping'
 
-sudo mount --bind /dev "$ROOTFS/dev"
-sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
-sudo mount --bind /proc "$ROOTFS/proc"
-sudo mount --bind /sys "$ROOTFS/sys"
-
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
-
-# Install kernel build dependencies
-apt-get install -y \
-    build-essential bc bison flex libssl-dev libelf-dev \
-    cpio kmod initramfs-tools dwarves
-
-cd /tmp
-tar xf $KERNEL_TARBALL
-cd $KERNEL_DIR
-
-# Use default config optimized for desktop
-make defconfig
-
-# Enable essential desktop features
-scripts/config --enable CONFIG_SMP
-scripts/config --enable CONFIG_MODULES
-scripts/config --enable CONFIG_MODULE_UNLOAD
-scripts/config --enable CONFIG_DRM
-scripts/config --enable CONFIG_DRM_I915
-scripts/config --enable CONFIG_DRM_AMDGPU
-scripts/config --enable CONFIG_DRM_NOUVEAU
-scripts/config --enable CONFIG_DRM_FBDEV_EMULATION
-scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE
-scripts/config --enable CONFIG_FB_VESA
-scripts/config --enable CONFIG_SOUND
-scripts/config --enable CONFIG_SND
-scripts/config --enable CONFIG_SND_HDA_INTEL
-scripts/config --enable CONFIG_USB
-scripts/config --enable CONFIG_USB_XHCI_HCD
-scripts/config --enable CONFIG_USB_EHCI_HCD
-scripts/config --enable CONFIG_INPUT_EVDEV
-scripts/config --enable CONFIG_EXT4_FS
-scripts/config --enable CONFIG_BTRFS_FS
-scripts/config --enable CONFIG_NTFS3_FS
-scripts/config --enable CONFIG_VFAT_FS
-scripts/config --enable CONFIG_FUSE_FS
-scripts/config --enable CONFIG_SQUASHFS
-scripts/config --enable CONFIG_OVERLAY_FS
-scripts/config --enable CONFIG_BLK_DEV_LOOP
-scripts/config --enable CONFIG_NETFILTER
-scripts/config --enable CONFIG_WIRELESS
-scripts/config --enable CONFIG_CFG80211
-scripts/config --enable CONFIG_MAC80211
-scripts/config --enable CONFIG_BT
-scripts/config --set-str CONFIG_DEFAULT_HOSTNAME blazeneuro
-scripts/config --set-str CONFIG_LOCALVERSION -blazeneuro
-
-# Build kernel (use all available cores)
-make -j\$(nproc)
-
-# Install modules and kernel
-make modules_install
-make install
-
-# Generate initramfs for our kernel
-KVER=\$(make kernelrelease)
-update-initramfs -c -k \$KVER
-
-# Clean up source
-cd /tmp
-rm -rf $KERNEL_DIR $KERNEL_TARBALL
-"
-
-sudo umount "$ROOTFS/dev/pts" || true
-sudo umount "$ROOTFS/dev" || true
-sudo umount "$ROOTFS/proc" || true
-sudo umount "$ROOTFS/sys" || true
-
-echo "Custom kernel compiled and installed."
-
-echo "=== Step 4: Install Chromium and VS Code ==="
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y chromium || apt-get install -y chromium-browser
-
+# VS Code from Microsoft repo
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
 echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main' > /etc/apt/sources.list.d/vscode.list
 apt-get update
-apt-get install -y code
+apt-get install -y code || echo '[INFO] VS Code install failed, skipping'
 "
 
-echo "=== Step 5: Install Snap and Software Center ==="
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y snapd gnome-software gnome-software-plugin-snap
-systemctl enable snapd.socket || true
-"
+echo "  ✓ Apps installed in $(( $(step_time) - START ))s"
 
-echo "=== Step 6: Build BlazeNeuro Desktop Environment ==="
-# Copy source code into chroot
+# ── Step 6: Build BlazeNeuro Desktop Environment ──────────
+print_step 6 "Build BlazeNeuro Desktop Environment"
+START=$(step_time)
+
+# Copy DE source code into chroot
 sudo cp -r blazeneuro-de "$ROOTFS/tmp/"
 
-# Build and install inside chroot
-sudo chroot "$ROOTFS" bash -c "
+run_chroot "
 cd /tmp/blazeneuro-de
+make clean || true
 make install
 cd /
 rm -rf /tmp/blazeneuro-de
 "
 
-echo "=== Step 7: Create Install Script ==="
+echo "  ✓ BlazeNeuro DE built and installed in $(( $(step_time) - START ))s"
+
+# ── Step 7: Create install-to-disk script ─────────────────
+print_step 7 "Create install-to-disk script"
+
 sudo tee "$ROOTFS/usr/local/bin/install-blazeneuro" > /dev/null << 'INSTALL_SCRIPT'
 #!/bin/bash
 # BlazeNeuro Install to Disk
@@ -376,7 +339,8 @@ mkdir -p /mnt/boot/efi
 mount /dev/${TARGET_DISK}1 /mnt/boot/efi
 
 # Copy live filesystem
-cp -ax / /mnt/ 2>/dev/null || rsync -aAXv / /mnt/ --exclude={"/mnt","/proc","/sys","/dev","/run","/tmp","/live","/cdrom"}
+rsync -aAXv / /mnt/ --exclude={"/mnt","/proc","/sys","/dev","/run","/tmp","/live","/cdrom"} 2>/dev/null || \
+cp -ax / /mnt/ 2>/dev/null
 
 # Configure fstab
 UUID_ROOT=$(blkid -s UUID -o value /dev/${TARGET_DISK}2)
@@ -386,13 +350,18 @@ UUID=$UUID_ROOT  /          ext4  errors=remount-ro  0  1
 UUID=$UUID_EFI   /boot/efi  vfat  umask=0077         0  1
 FSTAB
 
-# Install GRUB
+# Install GRUB (both BIOS and EFI)
 mount --bind /dev /mnt/dev
 mount --bind /proc /mnt/proc
 mount --bind /sys /mnt/sys
-chroot /mnt grub-install /dev/$TARGET_DISK
+
+chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=blazeneuro --removable 2>/dev/null || true
+chroot /mnt grub-install /dev/$TARGET_DISK 2>/dev/null || true
 chroot /mnt update-grub
+
 umount /mnt/dev /mnt/proc /mnt/sys
+umount /mnt/boot/efi
+umount /mnt
 
 echo ""
 echo "Installation complete! You can reboot now."
@@ -400,16 +369,36 @@ echo "Remove the installation media before rebooting."
 INSTALL_SCRIPT
 sudo chmod +x "$ROOTFS/usr/local/bin/install-blazeneuro"
 
-echo "=== Step 8: Create user account ==="
-sudo chroot "$ROOTFS" bash -c "
-useradd -m -s /bin/bash -G sudo,adm,cdrom,audio,video,plugdev user
+# Also create desktop shortcut for installer
+sudo tee "$ROOTFS/usr/share/applications/install-blazeneuro.desktop" > /dev/null << 'DSKTP'
+[Desktop Entry]
+Name=Install BlazeNeuro to Disk
+Comment=Install BlazeNeuro OS to your hard drive
+Exec=sudo blazeneuro-terminal -e "sudo install-blazeneuro"
+Icon=system-installer
+Terminal=false
+Type=Application
+Categories=System;
+DSKTP
+
+echo "  ✓ Install script created"
+
+# ── Step 8: Create user account ───────────────────────────
+print_step 8 "Create user account"
+
+run_chroot "
+useradd -m -s /bin/bash -G sudo,adm,cdrom,audio,video,plugdev,netdev user
 echo 'user:blazeneuro' | chpasswd
 echo 'root:root' | chpasswd
-# Allow user to use sudo without password
 echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user
+chmod 0440 /etc/sudoers.d/user
 "
 
-echo "=== Step 9: Configure login screen ==="
+echo "  ✓ User account created (user/blazeneuro)"
+
+# ── Step 9: Configure display manager ─────────────────────
+print_step 9 "Configure LightDM"
+
 sudo mkdir -p "$ROOTFS/etc/lightdm/lightdm.conf.d"
 sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-blazeneuro.conf" > /dev/null << EOF
 [Seat:*]
@@ -420,7 +409,6 @@ greeter-session=lightdm-gtk-greeter
 greeter-hide-users=false
 EOF
 
-# Brand the LightDM greeter
 sudo tee "$ROOTFS/etc/lightdm/lightdm-gtk-greeter.conf" > /dev/null << 'GREETER'
 [greeter]
 theme-name = Adwaita-dark
@@ -429,77 +417,94 @@ font-name = Inter 11
 background = #09090b
 GREETER
 
-sudo chroot "$ROOTFS" systemctl set-default graphical.target
+# Ensure autologin group exists and user is in it
+run_chroot "
+groupadd -f autologin
+usermod -aG autologin user
+systemctl set-default graphical.target
+"
 
-echo "=== Step 10: Configure networking ==="
-sudo chroot "$ROOTFS" systemctl enable NetworkManager
+echo "  ✓ LightDM configured with auto-login"
 
-echo "=== Step 11: Set up user home ==="
-sudo mkdir -p "$ROOTFS/home/user/Documents"
-sudo mkdir -p "$ROOTFS/home/user/Downloads"
-sudo mkdir -p "$ROOTFS/home/user/Pictures"
-sudo mkdir -p "$ROOTFS/home/user/Music"
-sudo mkdir -p "$ROOTFS/home/user/Videos"
+# ── Step 10: Configure networking ─────────────────────────
+print_step 10 "Configure networking"
 
-# Set default wallpaper
+run_chroot "
+systemctl enable NetworkManager
+"
+
+echo "  ✓ NetworkManager enabled"
+
+# ── Step 11: Set up user home ─────────────────────────────
+print_step 11 "Set up user home directory"
+
+sudo mkdir -p "$ROOTFS/home/user/"{Documents,Downloads,Pictures,Music,Videos,Desktop}
+
+# Set default wallpaper path
 if [ -f "blazeneuro-de/assets/wallpaper.png" ]; then
-    echo "$ROOTFS/usr/local/share/blazeneuro/assets/wallpaper.png" > "$ROOTFS/home/user/.blazeneuro-wallpaper"
+    echo "/usr/local/share/blazeneuro/assets/wallpaper.png" | sudo tee "$ROOTFS/home/user/.blazeneuro-wallpaper" > /dev/null
 fi
+
+# Copy installer shortcut to desktop
+sudo cp "$ROOTFS/usr/share/applications/install-blazeneuro.desktop" "$ROOTFS/home/user/Desktop/" 2>/dev/null || true
 
 sudo chroot "$ROOTFS" chown -R user:user /home/user
 
-echo "=== Step 12: Clean up chroot ==="
-sudo chroot "$ROOTFS" apt-get clean
-sudo chroot "$ROOTFS" rm -rf /var/cache/apt/archives/* /tmp/* /var/tmp/*
+echo "  ✓ User home configured"
 
-sudo umount "$ROOTFS/dev/pts" || true
-sudo umount "$ROOTFS/dev" || true
-sudo umount "$ROOTFS/proc" || true
-sudo umount "$ROOTFS/sys" || true
+# ── Step 12: Clean up rootfs ──────────────────────────────
+print_step 12 "Clean up rootfs"
 
-echo "=== Step 13: Build live ISO ==="
-mkdir -p "$ISOROOT"/{boot/grub,live}
-
-
-
-# Install live-boot
-sudo mount --bind /dev "$ROOTFS/dev"
-sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
-sudo mount --bind /proc "$ROOTFS/proc"
-sudo mount --bind /sys "$ROOTFS/sys"
-
-sudo chroot "$ROOTFS" bash -c "
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y live-boot
+run_chroot "
 apt-get clean
+rm -rf /var/cache/apt/archives/* /tmp/* /var/tmp/*
+rm -rf /var/lib/apt/lists/*
 "
 
-sudo umount "$ROOTFS/dev/pts" || true
-sudo umount "$ROOTFS/dev" || true
-sudo umount "$ROOTFS/proc" || true
-sudo umount "$ROOTFS/sys" || true
+umount_chroot
 
-# Create squashfs
-# Copy kernel and initrd (now that live-boot is installed)
-VMLINUZ=$(ls "$ROOTFS"/boot/vmlinuz-* 2>/dev/null | head -1)
-INITRD=$(ls "$ROOTFS"/boot/initrd.img-* 2>/dev/null | head -1)
+echo "  ✓ Rootfs cleaned"
+
+# ── Step 13: Build live ISO ───────────────────────────────
+print_step 13 "Build live ISO"
+START=$(step_time)
+
+mkdir -p "$ISOROOT"/{boot/grub,live}
+
+# Find kernel and initrd
+VMLINUZ=$(ls "$ROOTFS"/boot/vmlinuz-* 2>/dev/null | sort -V | tail -1)
+INITRD=$(ls "$ROOTFS"/boot/initrd.img-* 2>/dev/null | sort -V | tail -1)
 
 if [ -z "$VMLINUZ" ] || [ -z "$INITRD" ]; then
     echo "ERROR: Kernel or initrd not found!"
+    echo "Contents of $ROOTFS/boot/:"
     ls -la "$ROOTFS/boot/"
     exit 1
 fi
 
+echo "  Using kernel: $(basename "$VMLINUZ")"
+echo "  Using initrd: $(basename "$INITRD")"
+
 cp "$VMLINUZ" "$ISOROOT/boot/vmlinuz"
 cp "$INITRD" "$ISOROOT/boot/initrd.img"
 
-sudo mksquashfs "$ROOTFS" "$ISOROOT/live/filesystem.squashfs" -comp xz -e boot
+# Create squashfs
+echo "  Creating squashfs (this takes a while)..."
+sudo mksquashfs "$ROOTFS" "$ISOROOT/live/filesystem.squashfs" \
+    -comp xz -Xbcj x86 -b 1M -e boot
 
 # GRUB config
 cat > "$ISOROOT/boot/grub/grub.cfg" << 'GRUBCFG'
 set timeout=5
 set default=0
+
+insmod all_video
+insmod gfxterm
+set gfxmode=auto
+terminal_output gfxterm
+
+set menu_color_normal=white/black
+set menu_color_highlight=black/white
 
 menuentry "BlazeNeuro Desktop" {
     linux /boot/vmlinuz boot=live toram quiet splash
@@ -517,11 +522,30 @@ menuentry "BlazeNeuro Desktop (Persistent)" {
 }
 GRUBCFG
 
-echo "=== Step 14: Generate ISO ==="
-grub-mkrescue -o blazeneuro.iso "$ISOROOT"
+echo "  ✓ Live filesystem created in $(( $(step_time) - START ))s"
 
-echo "=== Build complete! ==="
-ls -lh blazeneuro.iso
+# ── Step 14: Generate ISO ─────────────────────────────────
+print_step 14 "Generate ISO"
+START=$(step_time)
+
+grub-mkrescue -o "$ISO_OUTPUT" "$ISOROOT" \
+    -- -volid "BLAZENEURO"
+
+echo "  ✓ ISO generated in $(( $(step_time) - START ))s"
+
+# ── Done ──────────────────────────────────────────────────
 echo ""
-echo "Default login: user / user"
-echo "To install to disk, run: sudo install-blazeneuro"
+echo "══════════════════════════════════════════════════════"
+echo "  Build complete!"
+echo "══════════════════════════════════════════════════════"
+echo ""
+ls -lh "$ISO_OUTPUT"
+echo ""
+echo "Default login: user / blazeneuro"
+echo "Root password: root"
+echo ""
+echo "Boot with:"
+echo "  qemu-system-x86_64 -cdrom $ISO_OUTPUT -m 2048 -enable-kvm"
+echo ""
+echo "Install to disk:"
+echo "  sudo install-blazeneuro"

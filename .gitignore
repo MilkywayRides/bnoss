@@ -3,7 +3,6 @@
 *.o
 isoroot/
 rootfs/
-blazeneuro-desktop-iso/
 
 # Compiled binaries (rebuild with make)
 blazeneuro-de/blazeneuro-wm
