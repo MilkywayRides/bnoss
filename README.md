@@ -1,20 +1,19 @@
 # BlazeNeuro — Desktop Linux OS
 
-A fully functional Ubuntu-based desktop Linux distro built via GitHub Actions.
+A fully functional Debian-based desktop Linux distro with a custom desktop environment, built via GitHub Actions.
 
 ## What's Included
 
 | Category | Software |
 |---|---|
-| Desktop | BlazeNeuro DE (custom GTK shell with desktop view, right-click context menu, and wallpaper customization) |
+| Desktop | BlazeNeuro DE (custom GTK shell with window manager, desktop, dock, topbar, launcher) |
 | Browser | Chromium |
 | Code Editor | Visual Studio Code |
 | File Manager | BlazeNeuro Files |
 | Terminal | BlazeNeuro Terminal |
-| Software Center | GNOME Software (install apps via GUI) |
-| Package Managers | apt, snap, flatpak |
+| Package Managers | apt, flatpak |
 | Dev Tools | git, python3, build-essential |
-| Utilities | htop, neofetch, BlazeNeuro Calculator, BlazeNeuro Notes, Task Viewer, screenshot, task manager |
+| Utilities | htop, neofetch, BlazeNeuro Calculator, BlazeNeuro Notes, Task Viewer, gnome-calculator, gnome-system-monitor |
 
 ## Download
 
@@ -43,25 +42,32 @@ sudo install-blazeneuro
 # Via apt
 sudo apt install firefox
 
-# Via snap
-sudo snap install spotify
+# Via flatpak
+flatpak install flathub org.mozilla.firefox
 
-# Via GUI
-# Open "Software Center" from the desktop
+# Via AppImage
+chmod +x SomeApp.AppImage && ./SomeApp.AppImage
 ```
 
 ## Linux App Compatibility
 
-BlazeNeuro is Ubuntu-based, so it can run most Ubuntu GUI/CLI apps directly with `apt`.
+BlazeNeuro is Debian-based, so it can run most Debian/Ubuntu GUI/CLI apps directly with `apt`.
 
 It also includes additional compatibility tooling:
-- **Snap** for sandboxed app packages
 - **Flatpak** for cross-distro desktop apps
-- **Distrobox + Podman** to run apps from other distros (for example Kali userland tools)
-- **Wine** for many Windows executables
 - **FUSE/AppImage support** via `fuse3` and `libfuse2`
 
 > Note: Kernel modules/drivers and apps requiring a specific host distro init stack may still need manual setup.
+
+## Building from Source
+
+```bash
+# Build the desktop environment locally
+cd blazeneuro-de && make clean && make
+
+# Build the full ISO (requires root, debootstrap, squashfs-tools, etc.)
+sudo ./build-iso.sh
+```
 
 ## Default Credentials
 
@@ -72,3 +78,14 @@ You can change your password after login with:
 ```bash
 passwd
 ```
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Alt+Enter` | Open terminal |
+| `Alt+Space` | Open launcher |
+| `Alt+Tab` | Cycle windows |
+| `Alt+F4` | Close window |
+| `Alt+Click` | Move window |
+| `Alt+Right-Click` | Resize window |
