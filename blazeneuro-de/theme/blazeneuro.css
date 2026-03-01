@@ -1,6 +1,7 @@
 /*
  * BlazeNeuro GTK3 Theme
  * shadcn/ui default dark theme (zinc palette)
+ * Premium glass-morphism design with traffic-light window controls.
  *
  * Token reference:
  *   --background:         #09090b   hsl(240 10% 3.9%)
@@ -18,7 +19,7 @@
  *   --destructive:        #7f1d1d   hsl(0 62.8% 30.6%)
  *   --destructive-fg:     #fafafa
  *   --ring:               #d4d4d8   hsl(240 4.9% 83.9%)
- *   --radius:             8px  (0.5rem)
+ *   --radius:             12px
  */
 
 /* ── Global ─────────────────────────────────────────────── */
@@ -46,17 +47,84 @@
 
 /* ── Window ─────────────────────────────────────────────── */
 window {
-    background-color: rgba(9, 9, 11, 0.92);
+    background-color: rgba(9, 9, 11, 0.94);
     color: #fafafa;
+    border-radius: 12px;
 }
 
 decoration {
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55),
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6),
+        0 4px 16px rgba(0, 0, 0, 0.3),
         0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-/* ── Header Bar ─────────────────────────────────────────── */
+/* ── Custom Title Bar (CSD) ────────────────────────────── */
+.titlebar {
+    background-color: rgba(9, 9, 11, 0.96);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 8px 12px;
+    min-height: 36px;
+    border-radius: 12px 12px 0 0;
+}
+
+.titlebar-title {
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Traffic-light window control buttons */
+.titlebar-btn {
+    min-width: 14px;
+    min-height: 14px;
+    max-width: 14px;
+    max-height: 14px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 999px;
+    background-color: #3f3f46;
+    transition: all 150ms ease;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.titlebar-btn:hover {
+    transform: scale(1.15);
+}
+
+.titlebar-btn-close {
+    background-color: #ef4444;
+}
+
+.titlebar-btn-close:hover {
+    background-color: #f87171;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5),
+        inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.titlebar-btn-minimize {
+    background-color: #eab308;
+}
+
+.titlebar-btn-minimize:hover {
+    background-color: #facc15;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.5),
+        inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.titlebar-btn-fullscreen {
+    background-color: #22c55e;
+}
+
+.titlebar-btn-fullscreen:hover {
+    background-color: #4ade80;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5),
+        inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Header Bar (if used) ──────────────────────────────── */
 headerbar {
     background-color: rgba(9, 9, 11, 0.95);
     border-bottom: 1px solid #27272a;
@@ -101,10 +169,12 @@ button {
 
 button:hover {
     background-color: #3f3f46;
+    border-color: rgba(255, 255, 255, 0.12);
 }
 
 button:active {
     background-color: #27272a;
+    transition: none;
 }
 
 button:focus {
@@ -160,6 +230,7 @@ entry {
     min-height: 32px;
     caret-color: #fafafa;
     font-size: 13px;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 entry:focus {
@@ -190,14 +261,15 @@ scrollbar {
 }
 
 scrollbar slider {
-    background-color: #27272a;
+    background-color: rgba(63, 63, 70, 0.6);
     border-radius: 999px;
     min-width: 6px;
     min-height: 6px;
+    transition: background-color 150ms ease;
 }
 
 scrollbar slider:hover {
-    background-color: #3f3f46;
+    background-color: #52525b;
 }
 
 scrollbar.overlay-indicator:not(.dragging):not(.hovering) slider {
@@ -242,7 +314,7 @@ treeview {
 }
 
 treeview header button {
-    background-color: #09090b;
+    background-color: rgba(9, 9, 11, 0.95);
     color: #a1a1aa;
     border-bottom: 1px solid #27272a;
     border-radius: 0;
@@ -262,9 +334,11 @@ treeview:selected {
 menu,
 .menu {
     background-color: rgba(9, 9, 11, 0.95);
-    border: 1px solid #27272a;
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
     padding: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 menuitem {
@@ -272,6 +346,7 @@ menuitem {
     padding: 6px 12px;
     color: #fafafa;
     font-size: 13px;
+    transition: background 100ms ease;
 }
 
 menuitem:hover {
@@ -280,7 +355,7 @@ menuitem:hover {
 }
 
 separator {
-    background-color: #27272a;
+    background-color: rgba(255, 255, 255, 0.06);
     min-height: 1px;
     min-width: 1px;
     margin: 4px 0;
@@ -288,12 +363,13 @@ separator {
 
 /* ── Tooltips ───────────────────────────────────────────── */
 tooltip {
-    background-color: #09090b;
-    border: 1px solid #27272a;
+    background-color: rgba(9, 9, 11, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     color: #fafafa;
     padding: 6px 10px;
     font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* ── Notebook / Tabs ────────────────────────────────────── */
@@ -313,6 +389,7 @@ notebook tab {
     border: none;
     font-size: 13px;
     font-weight: 500;
+    transition: color 150ms ease;
 }
 
 notebook tab:checked {
@@ -331,6 +408,7 @@ switch {
     min-width: 40px;
     min-height: 22px;
     border: none;
+    transition: background-color 200ms ease;
 }
 
 switch:checked {
@@ -343,6 +421,7 @@ switch slider {
     min-width: 18px;
     min-height: 18px;
     margin: 2px;
+    transition: all 200ms ease;
 }
 
 switch:checked slider {
@@ -376,6 +455,7 @@ radiobutton radio {
     border-radius: 4px;
     min-width: 18px;
     min-height: 18px;
+    transition: all 150ms ease;
 }
 
 radiobutton radio {
@@ -430,20 +510,44 @@ progressbar progress {
     border-radius: 999px;
 }
 
+/* ── File Chooser Dialog ────────────────────────────────── */
+filechooser {
+    background-color: #09090b;
+    color: #fafafa;
+}
+
+placessidebar {
+    background-color: rgba(9, 9, 11, 0.95);
+    border-right: 1px solid #27272a;
+}
+
+placessidebar row {
+    color: #a1a1aa;
+    border-radius: 8px;
+}
+
+placessidebar row:selected {
+    background-color: #27272a;
+    color: #fafafa;
+}
+
 /* ═══════════════════════════════════════════════════════════
    App-specific classes
    ═══════════════════════════════════════════════════════════ */
 
 /* ── Top Bar ────────────────────────────────────────────── */
 .topbar {
-    background-color: rgba(9, 9, 11, 0.85);
-    border-bottom: 1px solid #27272a;
+    background: linear-gradient(180deg,
+            rgba(9, 9, 11, 0.92) 0%,
+            rgba(9, 9, 11, 0.85) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .topbar-title {
     color: #fafafa;
     font-size: 13px;
     font-weight: 700;
+    letter-spacing: 0.2px;
 }
 
 .topbar-label {
@@ -453,9 +557,10 @@ progressbar progress {
 }
 
 .topbar-clock {
-    color: #a1a1aa;
+    color: #d4d4d8;
     font-size: 13px;
-    font-weight: 400;
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
 .wm-control,
@@ -483,15 +588,16 @@ progressbar progress {
 
 /* ── Dock ────────────────────────────────────────────────── */
 .dock-window {
-    background-color: rgba(9, 9, 11, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
+    background-color: rgba(9, 9, 11, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .dock-button {
     background: transparent;
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 6px;
     min-width: 48px;
     min-height: 48px;
@@ -499,17 +605,21 @@ progressbar progress {
 }
 
 .dock-button:hover {
-    background-color: #27272a;
+    background-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
 }
 
 /* ── Launcher ───────────────────────────────────────────── */
 .launcher-window {
-    background-color: rgba(9, 9, 11, 0.85);
+    background-color: rgba(9, 9, 11, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
 .search-box {
-    background-color: #09090b;
-    border: 1px solid #27272a;
+    background-color: rgba(9, 9, 11, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 12px 16px;
     color: #fafafa;
@@ -518,8 +628,8 @@ progressbar progress {
 }
 
 .search-box:focus {
-    border-color: #d4d4d8;
-    box-shadow: 0 0 0 2px rgba(212, 212, 216, 0.3);
+    border-color: rgba(212, 212, 216, 0.4);
+    box-shadow: 0 0 0 2px rgba(212, 212, 216, 0.2);
 }
 
 .result-btn {
@@ -529,6 +639,7 @@ progressbar progress {
     color: #fafafa;
     padding: 6px 12px;
     font-size: 14px;
+    transition: background 100ms ease;
 }
 
 .result-btn:hover {
@@ -537,8 +648,8 @@ progressbar progress {
 
 /* ── Sidebar (Files / Settings) ─────────────────────────── */
 .sidebar {
-    background-color: rgba(9, 9, 11, 0.95);
-    border-right: 1px solid #27272a;
+    background-color: rgba(9, 9, 11, 0.96);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
     padding: 8px 0;
 }
 
@@ -547,6 +658,7 @@ progressbar progress {
     border-radius: 8px;
     margin: 1px 6px;
     padding: 6px 10px;
+    transition: all 150ms ease;
 }
 
 .sidebar row:selected {
@@ -556,12 +668,13 @@ progressbar progress {
 
 .sidebar row:hover {
     background-color: rgba(39, 39, 42, 0.5);
+    color: #d4d4d8;
 }
 
 /* ── Path Bar ───────────────────────────────────────────── */
 .pathbar {
-    background-color: #09090b;
-    border-bottom: 1px solid #27272a;
+    background-color: rgba(9, 9, 11, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     padding: 8px 16px;
     color: #a1a1aa;
     font-size: 13px;
@@ -585,10 +698,11 @@ iconview:selected {
 
 /* ── Settings ───────────────────────────────────────────── */
 .settings-section {
-    background-color: rgba(9, 9, 11, 0.8);
-    border: 1px solid #27272a;
+    background-color: rgba(9, 9, 11, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     margin: 8px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .section-title {
@@ -611,8 +725,8 @@ label.header {
 
 /* ── Calculator ─────────────────────────────────────────── */
 .calc-display {
-    background-color: #09090b;
-    border: 1px solid #27272a;
+    background-color: rgba(9, 9, 11, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     padding: 16px 20px;
     color: #fafafa;
@@ -631,40 +745,50 @@ label.header {
     background-color: #27272a;
     color: #fafafa;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     font-weight: 500;
     min-height: 48px;
     min-width: 60px;
     padding: 8px;
+    transition: all 100ms ease;
 }
 
 .calc-btn:hover {
     background-color: #3f3f46;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.calc-btn:active {
+    background-color: #52525b;
+    transition: none;
 }
 
 .calc-btn-op {
-    background-color: #27272a;
-    color: #fafafa;
+    background-color: rgba(39, 39, 42, 0.8);
+    color: #d4d4d8;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     font-weight: 500;
     min-height: 48px;
+    transition: all 100ms ease;
 }
 
 .calc-btn-op:hover {
     background-color: #3f3f46;
+    color: #fafafa;
 }
 
 .calc-btn-equals {
     background-color: #fafafa;
     color: #18181b;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     font-weight: 600;
     min-height: 48px;
+    transition: all 100ms ease;
 }
 
 .calc-btn-equals:hover {
@@ -675,10 +799,11 @@ label.header {
     background-color: #7f1d1d;
     color: #fafafa;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
     font-weight: 600;
     min-height: 48px;
+    transition: all 100ms ease;
 }
 
 .calc-btn-clear:hover {
@@ -700,17 +825,17 @@ label.header {
 }
 
 .notes-statusbar {
-    background-color: #09090b;
-    border-top: 1px solid #27272a;
+    background-color: rgba(9, 9, 11, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
     padding: 4px 12px;
-    color: #a1a1aa;
+    color: #71717a;
     font-size: 12px;
 }
 
 /* ── Task Viewer ────────────────────────────────────────── */
 .task-header {
     padding: 12px 16px;
-    border-bottom: 1px solid #27272a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .task-header label {

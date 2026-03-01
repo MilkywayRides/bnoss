@@ -1,6 +1,6 @@
 /*
  * BlazeNeuro Desktop View
- * Provides desktop wallpaper rendering + right-click context menu.
+ * Provides desktop wallpaper rendering + rich right-click context menu.
  */
 
 #include <gtk/gtk.h>
@@ -13,6 +13,7 @@
 static GtkWidget *desktop_win;
 static GtkWidget *desktop_image;
 
+/* ── Wallpaper ──────────────────────────────────────────── */
 static void save_wallpaper_path(const char *path) {
     const char *home = g_get_home_dir();
     char conf_path[512];
@@ -34,7 +35,6 @@ static gboolean apply_wallpaper_file(const char *path) {
         return FALSE;
     }
 
-    /* Use GdkMonitor API instead of deprecated gdk_screen_width/height */
     GdkDisplay *display = gdk_display_get_default();
     GdkMonitor *mon = gdk_display_get_primary_monitor(display);
     if (!mon) {
@@ -81,9 +81,23 @@ static void load_initial_wallpaper(void) {
     apply_wallpaper_file("/usr/local/share/blazeneuro/assets/wallpaper.png");
 }
 
+/* ── Launch Helpers ─────────────────────────────────────── */
+static void launch_cmd(const char *cmd) {
+    gchar *argv[] = { "sh", "-c", (gchar *)cmd, NULL };
+    g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+}
+
+static void open_terminal(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-terminal"); }
+static void open_files(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-files"); }
+static void open_settings(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-settings"); }
+static void open_calculator(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-calculator"); }
+static void open_notes(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-notes"); }
+static void open_tasks(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-taskviewer"); }
+static void open_browser(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("chromium || chromium-browser || firefox"); }
+static void open_launcher(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-launcher"); }
+
 static void choose_wallpaper(GtkWidget *widget, gpointer data) {
-    (void)widget;
-    (void)data;
+    (void)widget; (void)data;
 
     GtkWidget *dialog = gtk_file_chooser_dialog_new(
         "Choose Wallpaper",
@@ -110,26 +124,58 @@ static void choose_wallpaper(GtkWidget *widget, gpointer data) {
     gtk_widget_destroy(dialog);
 }
 
-static void launch_cmd(const char *cmd) {
-    gchar *argv[] = { "sh", "-c", (gchar *)cmd, NULL };
-    g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+/* ── Menu Item Helper ───────────────────────────────────── */
+static GtkWidget *make_menu_item(const char *icon_name, const char *label,
+                                  GCallback callback) {
+    GtkWidget *item = gtk_menu_item_new();
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+
+    if (icon_name) {
+        GtkWidget *icon = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_MENU);
+        gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
+    }
+
+    GtkWidget *lbl = gtk_label_new(label);
+    gtk_label_set_xalign(GTK_LABEL(lbl), 0);
+    gtk_box_pack_start(GTK_BOX(hbox), lbl, TRUE, TRUE, 0);
+
+    gtk_container_add(GTK_CONTAINER(item), hbox);
+
+    if (callback) {
+        g_signal_connect(item, "activate", callback, NULL);
+    }
+    return item;
 }
 
-static void open_terminal(GtkWidget *widget, gpointer data) {
-    (void)widget; (void)data;
-    launch_cmd("blazeneuro-terminal");
+static GtkWidget *make_menu_item_with_shortcut(const char *icon_name,
+                                                const char *label,
+                                                const char *shortcut,
+                                                GCallback callback) {
+    GtkWidget *item = gtk_menu_item_new();
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+
+    if (icon_name) {
+        GtkWidget *icon = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_MENU);
+        gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
+    }
+
+    GtkWidget *lbl = gtk_label_new(label);
+    gtk_label_set_xalign(GTK_LABEL(lbl), 0);
+    gtk_box_pack_start(GTK_BOX(hbox), lbl, TRUE, TRUE, 0);
+
+    GtkWidget *sc = gtk_label_new(shortcut);
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc), "muted");
+    gtk_box_pack_end(GTK_BOX(hbox), sc, FALSE, FALSE, 0);
+
+    gtk_container_add(GTK_CONTAINER(item), hbox);
+
+    if (callback) {
+        g_signal_connect(item, "activate", callback, NULL);
+    }
+    return item;
 }
 
-static void open_files(GtkWidget *widget, gpointer data) {
-    (void)widget; (void)data;
-    launch_cmd("blazeneuro-files");
-}
-
-static void open_settings(GtkWidget *widget, gpointer data) {
-    (void)widget; (void)data;
-    launch_cmd("blazeneuro-settings");
-}
-
+/* ── Desktop Context Menu ───────────────────────────────── */
 static gboolean on_button_press(GtkWidget *widget, GdkEventButton *ev, gpointer data) {
     (void)widget;
     (void)data;
@@ -137,22 +183,50 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *ev, gpointer 
     if (ev->type == GDK_BUTTON_PRESS && ev->button == 3) {
         GtkWidget *menu = gtk_menu_new();
 
-        GtkWidget *files_item = gtk_menu_item_new_with_label("Open Files");
-        GtkWidget *terminal_item = gtk_menu_item_new_with_label("Open Terminal");
-        GtkWidget *settings_item = gtk_menu_item_new_with_label("Open Settings");
-        GtkWidget *sep = gtk_separator_menu_item_new();
-        GtkWidget *wallpaper_item = gtk_menu_item_new_with_label("Change Wallpaper…");
+        /* ── Applications submenu ──────────────────────── */
+        GtkWidget *apps_item = make_menu_item("system-run", "Applications", NULL);
+        GtkWidget *apps_sub = gtk_menu_new();
+        gtk_menu_item_set_submenu(GTK_MENU_ITEM(apps_item), apps_sub);
 
-        g_signal_connect(files_item, "activate", G_CALLBACK(open_files), NULL);
-        g_signal_connect(terminal_item, "activate", G_CALLBACK(open_terminal), NULL);
-        g_signal_connect(settings_item, "activate", G_CALLBACK(open_settings), NULL);
-        g_signal_connect(wallpaper_item, "activate", G_CALLBACK(choose_wallpaper), NULL);
+        gtk_menu_shell_append(GTK_MENU_SHELL(apps_sub),
+            make_menu_item("utilities-terminal", "Terminal", G_CALLBACK(open_terminal)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(apps_sub),
+            make_menu_item("system-file-manager", "Files", G_CALLBACK(open_files)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(apps_sub),
+            make_menu_item("accessories-calculator", "Calculator", G_CALLBACK(open_calculator)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(apps_sub),
+            make_menu_item("accessories-text-editor", "Notes", G_CALLBACK(open_notes)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(apps_sub),
+            make_menu_item("web-browser", "Browser", G_CALLBACK(open_browser)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(apps_sub),
+            make_menu_item("utilities-system-monitor", "Task Viewer", G_CALLBACK(open_tasks)));
 
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), files_item);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), terminal_item);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), settings_item);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), sep);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), wallpaper_item);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), apps_item);
+
+        /* ── Separator ─────────────────────────────────── */
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+        /* ── Quick launch items ─────────────────────────── */
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu),
+            make_menu_item_with_shortcut("utilities-terminal", "Open Terminal",
+                                         "Alt+Enter", G_CALLBACK(open_terminal)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu),
+            make_menu_item_with_shortcut("system-file-manager", "Open Files",
+                                         "Super+E", G_CALLBACK(open_files)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu),
+            make_menu_item_with_shortcut("system-search", "App Launcher",
+                                         "Alt+Space", G_CALLBACK(open_launcher)));
+
+        /* ── Separator ─────────────────────────────────── */
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+        /* ── Desktop actions ────────────────────────────── */
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu),
+            make_menu_item("preferences-desktop-wallpaper", "Change Wallpaper…",
+                           G_CALLBACK(choose_wallpaper)));
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu),
+            make_menu_item("preferences-system", "Settings",
+                           G_CALLBACK(open_settings)));
 
         gtk_widget_show_all(menu);
         gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent *)ev);
@@ -162,6 +236,7 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *ev, gpointer 
     return FALSE;
 }
 
+/* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
     blazeneuro_load_theme();

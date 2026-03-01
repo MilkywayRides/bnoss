@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include "../common/theme.h"
+#include "../common/titlebar.h"
 
 
 static void on_child_exit(VteTerminal *term, gint status, gpointer data) {
@@ -116,7 +117,9 @@ int main(int argc, char *argv[]) {
     g_signal_connect(vte, "child-exited", G_CALLBACK(on_child_exit), NULL);
     g_signal_connect(win, "key-press-event", G_CALLBACK(on_key_press), vte);
 
-    gtk_container_add(GTK_CONTAINER(win), term);
+    /* Add titlebar + content */
+    blazeneuro_add_titlebar(win, "Terminal", term);
+
     gtk_widget_show_all(win);
     gtk_main();
 

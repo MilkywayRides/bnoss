@@ -1,8 +1,9 @@
 /*
  * BlazeNeuro Window Manager
- * A minimal X11 window manager with compositing support.
- * Handles window placement, focus, move/resize, and EWMH hints.
- * Delegates visual effects (blur, shadows, rounded corners) to picom.
+ * A feature-rich X11 window manager with EWMH compliance.
+ * Handles window placement, focus, move/resize, snapping,
+ * minimize/restore, fullscreen, and keyboard shortcuts.
+ * Delegates visual effects to picom compositor.
  */
 
 #include <X11/Xlib.h>
@@ -34,47 +35,32 @@ static int drag_mode = 0; /* 0=none, 1=move, 2=resize */
 
 /* EWMH atoms */
 static Atom net_supported, net_wm_name, net_wm_state;
-static Atom net_wm_state_fullscreen, net_wm_window_type;
+static Atom net_wm_state_fullscreen, net_wm_state_hidden;
+static Atom net_wm_state_maximized_vert, net_wm_state_maximized_horz;
+static Atom net_wm_window_type;
 static Atom net_wm_window_type_dock, net_wm_window_type_dialog;
 static Atom net_wm_window_type_normal, net_wm_strut;
 static Atom net_wm_strut_partial, net_active_window;
 static Atom net_supporting_wm_check, net_client_list;
-static Atom net_wm_state_max_horz, net_wm_state_max_vert;
-static Atom net_close_window;
+static Atom net_close_window, net_wm_state_demands_attention;
+static Atom net_current_desktop, net_number_of_desktops;
 static Atom wm_protocols, wm_delete_window, wm_state;
+static Atom wm_change_state;
 
 /* Client tracking */
 #define MAX_CLIENTS 256
-static Window clients[MAX_CLIENTS];
-static int nclients = 0;
-
 typedef struct {
     Window win;
-    int saved_x, saved_y, saved_w, saved_h;
-    int saved_valid;
-    int is_maximized;
+    int x, y, w, h;       /* saved geometry for restore */
     int is_fullscreen;
-} ClientState;
+    int is_minimized;
+    int is_maximized;
+} Client;
 
-static ClientState client_states[MAX_CLIENTS];
-
-static int topbar_height(void) { return 32; }
-static int dock_height(void) { return 72; }
-
-static void usable_area(int *x, int *y, int *w, int *h) {
-    *x = 0;
-    *y = topbar_height();
-    *w = sw;
-    *h = sh - topbar_height() - dock_height();
-    if (*h < 80) *h = sh;
-}
-
-static ClientState *find_client_state(Window w) {
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (client_states[i].win == w) return &client_states[i];
-    }
-    return NULL;
-}
+static Client clients[MAX_CLIENTS];
+static int nclients = 0;
+static int topbar_h = 32;
+static int dock_h = 72;
 
 /* ── EWMH Setup ────────────────────────────────────────── */
 static void setup_ewmh(void) {
@@ -82,8 +68,10 @@ static void setup_ewmh(void) {
     net_wm_name             = XInternAtom(dpy, "_NET_WM_NAME", False);
     net_wm_state            = XInternAtom(dpy, "_NET_WM_STATE", False);
     net_wm_state_fullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-    net_wm_state_max_horz   = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-    net_wm_state_max_vert   = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    net_wm_state_hidden     = XInternAtom(dpy, "_NET_WM_STATE_HIDDEN", False);
+    net_wm_state_maximized_vert = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    net_wm_state_maximized_horz = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+    net_wm_state_demands_attention = XInternAtom(dpy, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
     net_wm_window_type      = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     net_wm_window_type_dock = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
     net_wm_window_type_dialog = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
@@ -94,9 +82,12 @@ static void setup_ewmh(void) {
     net_supporting_wm_check = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
     net_client_list         = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
     net_close_window        = XInternAtom(dpy, "_NET_CLOSE_WINDOW", False);
+    net_current_desktop     = XInternAtom(dpy, "_NET_CURRENT_DESKTOP", False);
+    net_number_of_desktops  = XInternAtom(dpy, "_NET_NUMBER_OF_DESKTOPS", False);
     wm_protocols            = XInternAtom(dpy, "WM_PROTOCOLS", False);
     wm_delete_window        = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
     wm_state                = XInternAtom(dpy, "WM_STATE", False);
+    wm_change_state         = XInternAtom(dpy, "WM_CHANGE_STATE", False);
 
     /* Create check window */
     Window check = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
@@ -105,53 +96,76 @@ static void setup_ewmh(void) {
     XChangeProperty(dpy, root, net_supporting_wm_check, XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *)&check, 1);
 
-    const char *wm_name = "BlazeNeuro";
+    const char *wm_name_str = "BlazeNeuro";
     XChangeProperty(dpy, check, net_wm_name,
                     XInternAtom(dpy, "UTF8_STRING", False), 8,
-                    PropModeReplace, (unsigned char *)wm_name, strlen(wm_name));
+                    PropModeReplace, (unsigned char *)wm_name_str, strlen(wm_name_str));
 
     Atom supported[] = {
         net_supported, net_wm_name, net_wm_state,
-        net_wm_state_fullscreen, net_wm_window_type,
-        net_wm_state_max_horz, net_wm_state_max_vert,
-        net_close_window, net_active_window, net_client_list,
-        net_wm_strut, net_wm_strut_partial
+        net_wm_state_fullscreen, net_wm_state_hidden,
+        net_wm_state_maximized_vert, net_wm_state_maximized_horz,
+        net_wm_window_type, net_active_window, net_client_list,
+        net_wm_strut, net_wm_strut_partial, net_close_window,
+        net_current_desktop, net_number_of_desktops
     };
     XChangeProperty(dpy, root, net_supported, XA_ATOM, 32,
                     PropModeReplace, (unsigned char *)supported,
                     sizeof(supported) / sizeof(Atom));
+
+    /* Single desktop */
+    long desktop = 0;
+    long num_desktops = 1;
+    XChangeProperty(dpy, root, net_current_desktop, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *)&desktop, 1);
+    XChangeProperty(dpy, root, net_number_of_desktops, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *)&num_desktops, 1);
 }
 
 /* ── Client Management ─────────────────────────────────── */
+static void update_client_list(void) {
+    Window wins[MAX_CLIENTS];
+    int count = 0;
+    for (int i = 0; i < nclients; i++)
+        wins[count++] = clients[i].win;
+    XChangeProperty(dpy, root, net_client_list, XA_WINDOW, 32,
+                    PropModeReplace, (unsigned char *)wins, count);
+}
+
+static Client *find_client(Window w) {
+    for (int i = 0; i < nclients; i++)
+        if (clients[i].win == w) return &clients[i];
+    return NULL;
+}
+
 static void add_client(Window w) {
     if (nclients < MAX_CLIENTS) {
-        clients[nclients++] = w;
-        XChangeProperty(dpy, root, net_client_list, XA_WINDOW, 32,
-                        PropModeReplace, (unsigned char *)clients, nclients);
-    }
+        Client *c = &clients[nclients++];
+        c->win = w;
+        c->is_fullscreen = 0;
+        c->is_minimized = 0;
+        c->is_maximized = 0;
 
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (client_states[i].win == None) {
-            client_states[i].win = w;
-            break;
+        /* Save initial geometry */
+        XWindowAttributes wa;
+        if (XGetWindowAttributes(dpy, w, &wa)) {
+            c->x = wa.x; c->y = wa.y;
+            c->w = wa.width; c->h = wa.height;
         }
+        update_client_list();
     }
 }
 
 static void remove_client(Window w) {
     for (int i = 0; i < nclients; i++) {
-        if (clients[i] == w) {
+        if (clients[i].win == w) {
             memmove(&clients[i], &clients[i + 1],
-                    (nclients - i - 1) * sizeof(Window));
+                    (nclients - i - 1) * sizeof(Client));
             nclients--;
-            XChangeProperty(dpy, root, net_client_list, XA_WINDOW, 32,
-                            PropModeReplace, (unsigned char *)clients, nclients);
-            break;
+            update_client_list();
+            return;
         }
     }
-
-    ClientState *st = find_client_state(w);
-    if (st) memset(st, 0, sizeof(*st));
 }
 
 static void set_active(Window w) {
@@ -207,67 +221,148 @@ static int send_delete(Window w) {
     return found;
 }
 
-static void set_maximized(Window w, int maximize) {
-    ClientState *st = find_client_state(w);
-    if (!st) return;
-
-    XWindowAttributes wa;
-    if (!XGetWindowAttributes(dpy, w, &wa)) return;
-
-    if (maximize) {
-        if (!st->saved_valid) {
-            st->saved_x = wa.x;
-            st->saved_y = wa.y;
-            st->saved_w = wa.width;
-            st->saved_h = wa.height;
-            st->saved_valid = 1;
-        }
-        int x, y, w_area, h_area;
-        usable_area(&x, &y, &w_area, &h_area);
-        XMoveResizeWindow(dpy, w, x, y, w_area, h_area);
-        st->is_maximized = 1;
-        st->is_fullscreen = 0;
-    } else {
-        if (st->saved_valid) {
-            XMoveResizeWindow(dpy, w, st->saved_x, st->saved_y, st->saved_w, st->saved_h);
-            st->saved_valid = 0;
-        }
-        st->is_maximized = 0;
-    }
-}
-
-static void set_fullscreen(Window w, int fullscreen) {
-    ClientState *st = find_client_state(w);
-    if (!st) return;
-
-    XWindowAttributes wa;
-    if (!XGetWindowAttributes(dpy, w, &wa)) return;
-
-    if (fullscreen) {
-        if (!st->saved_valid) {
-            st->saved_x = wa.x;
-            st->saved_y = wa.y;
-            st->saved_w = wa.width;
-            st->saved_h = wa.height;
-            st->saved_valid = 1;
-        }
-        XMoveResizeWindow(dpy, w, 0, 0, sw, sh);
-        st->is_fullscreen = 1;
-        st->is_maximized = 0;
-    } else {
-        if (st->saved_valid) {
-            XMoveResizeWindow(dpy, w, st->saved_x, st->saved_y, st->saved_w, st->saved_h);
-            st->saved_valid = 0;
-        }
-        st->is_fullscreen = 0;
-    }
-}
-
 /* ── Focus ──────────────────────────────────────────────── */
 static void focus_window(Window w) {
     XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
     XRaiseWindow(dpy, w);
     set_active(w);
+}
+
+/* ── Fullscreen Toggle ──────────────────────────────────── */
+static void toggle_fullscreen(Window w) {
+    Client *c = find_client(w);
+    if (!c) return;
+
+    if (c->is_fullscreen) {
+        /* Restore */
+        XMoveResizeWindow(dpy, w, c->x, c->y, c->w, c->h);
+        c->is_fullscreen = 0;
+
+        /* Remove fullscreen state */
+        XDeleteProperty(dpy, w, net_wm_state);
+    } else {
+        /* Save geometry and go fullscreen */
+        XWindowAttributes wa;
+        XGetWindowAttributes(dpy, w, &wa);
+        c->x = wa.x; c->y = wa.y;
+        c->w = wa.width; c->h = wa.height;
+
+        XMoveResizeWindow(dpy, w, 0, 0, sw, sh);
+        XRaiseWindow(dpy, w);
+        c->is_fullscreen = 1;
+
+        /* Set fullscreen state */
+        XChangeProperty(dpy, w, net_wm_state, XA_ATOM, 32,
+                        PropModeReplace,
+                        (unsigned char *)&net_wm_state_fullscreen, 1);
+    }
+}
+
+/* ── Maximize Toggle ────────────────────────────────────── */
+static void toggle_maximize(Window w) {
+    Client *c = find_client(w);
+    if (!c) return;
+
+    if (c->is_maximized) {
+        XMoveResizeWindow(dpy, w, c->x, c->y, c->w, c->h);
+        c->is_maximized = 0;
+    } else {
+        XWindowAttributes wa;
+        XGetWindowAttributes(dpy, w, &wa);
+        c->x = wa.x; c->y = wa.y;
+        c->w = wa.width; c->h = wa.height;
+
+        XMoveResizeWindow(dpy, w, 0, topbar_h, sw, sh - topbar_h - dock_h);
+        c->is_maximized = 1;
+    }
+    XRaiseWindow(dpy, w);
+}
+
+/* ── Minimize / Restore ─────────────────────────────────── */
+static void minimize_window(Window w) {
+    Client *c = find_client(w);
+    if (!c) return;
+
+    XUnmapWindow(dpy, w);
+    c->is_minimized = 1;
+
+    /* Set WM_STATE to IconicState */
+    long state[] = { 3 /* IconicState */, None };
+    XChangeProperty(dpy, w, wm_state, wm_state, 32,
+                    PropModeReplace, (unsigned char *)state, 2);
+
+    /* Set _NET_WM_STATE_HIDDEN */
+    XChangeProperty(dpy, w, net_wm_state, XA_ATOM, 32,
+                    PropModeReplace,
+                    (unsigned char *)&net_wm_state_hidden, 1);
+}
+
+static void restore_window(Window w) {
+    Client *c = find_client(w);
+    if (!c || !c->is_minimized) return;
+
+    XMapWindow(dpy, w);
+    c->is_minimized = 0;
+
+    /* Set WM_STATE to NormalState */
+    long state[] = { 1 /* NormalState */, None };
+    XChangeProperty(dpy, w, wm_state, wm_state, 32,
+                    PropModeReplace, (unsigned char *)state, 2);
+
+    /* Remove hidden state */
+    XDeleteProperty(dpy, w, net_wm_state);
+    focus_window(w);
+}
+
+/* ── Window Snapping (left/right half) ──────────────────── */
+static void snap_window(Window w, int direction) {
+    /* direction: 0=left, 1=right */
+    Client *c = find_client(w);
+    if (!c) return;
+
+    /* Save geometry if not already snapped/maximized */
+    if (!c->is_maximized) {
+        XWindowAttributes wa;
+        XGetWindowAttributes(dpy, w, &wa);
+        c->x = wa.x; c->y = wa.y;
+        c->w = wa.width; c->h = wa.height;
+    }
+
+    int avail_h = sh - topbar_h - dock_h;
+    int half_w = sw / 2;
+
+    if (direction == 0) {
+        /* Snap left */
+        XMoveResizeWindow(dpy, w, 0, topbar_h, half_w, avail_h);
+    } else {
+        /* Snap right */
+        XMoveResizeWindow(dpy, w, half_w, topbar_h, half_w, avail_h);
+    }
+    c->is_maximized = 0; /* snapping is not maximizing */
+    XRaiseWindow(dpy, w);
+}
+
+/* ── Show Desktop (minimize all) ────────────────────────── */
+static int desktop_shown = 0;
+
+static void toggle_show_desktop(void) {
+    if (desktop_shown) {
+        /* Restore all */
+        for (int i = 0; i < nclients; i++) {
+            if (clients[i].is_minimized) {
+                restore_window(clients[i].win);
+            }
+        }
+        desktop_shown = 0;
+    } else {
+        /* Minimize all non-dock windows */
+        for (int i = 0; i < nclients; i++) {
+            if (!clients[i].is_minimized) {
+                minimize_window(clients[i].win);
+            }
+        }
+        desktop_shown = 1;
+    }
 }
 
 /* ── Event Handlers ─────────────────────────────────────── */
@@ -284,17 +379,21 @@ static void handle_map_request(XMapRequestEvent *ev) {
         return;
     }
 
-    int ax, ay, aw, ah;
-    usable_area(&ax, &ay, &aw, &ah);
+    /* Set border to 0 for cleaner CSD look */
+    XSetWindowBorderWidth(dpy, w, 0);
 
-    int win_w = wa.width > 0 ? wa.width : aw * 2 / 3;
-    int win_h = wa.height > 0 ? wa.height : ah * 2 / 3;
+    /* Center new windows, reserve space for topbar and dock */
+    int avail_w = sw;
+    int avail_h = sh - topbar_h - dock_h;
 
-    if (win_w > aw) win_w = aw;
-    if (win_h > ah) win_h = ah;
+    int win_w = wa.width > 0 ? wa.width : avail_w * 2 / 3;
+    int win_h = wa.height > 0 ? wa.height : avail_h * 2 / 3;
 
-    int x = ax + (aw - win_w) / 2;
-    int y = ay + (ah - win_h) / 2;
+    if (win_w > avail_w) win_w = avail_w;
+    if (win_h > avail_h) win_h = avail_h;
+
+    int x = (avail_w - win_w) / 2;
+    int y = topbar_h + (avail_h - win_h) / 2;
 
     XMoveResizeWindow(dpy, w, x, y, win_w, win_h);
     XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask |
@@ -308,6 +407,11 @@ static void handle_map_request(XMapRequestEvent *ev) {
                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
                 GrabModeAsync, GrabModeAsync, None, None);
 
+    /* Set WM_STATE to NormalState */
+    long state[] = { 1 /* NormalState */, None };
+    XChangeProperty(dpy, w, wm_state, wm_state, 32,
+                    PropModeReplace, (unsigned char *)state, 2);
+
     XMapWindow(dpy, w);
     add_client(w);
     focus_window(w);
@@ -319,13 +423,16 @@ static void handle_configure_request(XConfigureRequestEvent *ev) {
     wc.y = ev->y;
     wc.width = ev->width;
     wc.height = ev->height;
-    wc.border_width = ev->border_width;
+    wc.border_width = 0; /* Always 0 for CSD */
     wc.sibling = ev->above;
     wc.stack_mode = ev->detail;
     XConfigureWindow(dpy, ev->window, ev->value_mask, &wc);
 }
 
 static void handle_unmap(XUnmapEvent *ev) {
+    /* Don't remove if we minimized it ourselves */
+    Client *c = find_client(ev->window);
+    if (c && c->is_minimized) return;
     remove_client(ev->window);
 }
 
@@ -364,6 +471,9 @@ static void handle_button_release(XButtonEvent *ev) {
 static void handle_motion(XMotionEvent *ev) {
     if (drag_win == None) return;
 
+    /* Coalesce motion events — drain and use latest */
+    while (XCheckTypedWindowEvent(dpy, ev->window, MotionNotify, (XEvent *)ev));
+
     int dx = ev->x_root - drag_start_x;
     int dy = ev->y_root - drag_start_y;
 
@@ -380,25 +490,83 @@ static void handle_motion(XMotionEvent *ev) {
     }
 }
 
+/* ── Client Message Handler (EWMH) ─────────────────────── */
+static void handle_client_message(XClientMessageEvent *ev) {
+    /* _NET_CLOSE_WINDOW */
+    if (ev->message_type == net_close_window) {
+        send_delete(ev->window);
+        return;
+    }
+
+    /* _NET_ACTIVE_WINDOW — raise and focus */
+    if (ev->message_type == net_active_window) {
+        Client *c = find_client(ev->window);
+        if (c && c->is_minimized)
+            restore_window(ev->window);
+        else
+            focus_window(ev->window);
+        return;
+    }
+
+    /* _NET_WM_STATE toggle */
+    if (ev->message_type == net_wm_state) {
+        Atom action_atom = (Atom)ev->data.l[1];
+        /* int action = ev->data.l[0]; */ /* 0=remove, 1=add, 2=toggle */
+
+        if (action_atom == net_wm_state_fullscreen) {
+            toggle_fullscreen(ev->window);
+        } else if (action_atom == net_wm_state_hidden) {
+            Client *c = find_client(ev->window);
+            if (c && c->is_minimized)
+                restore_window(ev->window);
+            else
+                minimize_window(ev->window);
+        } else if (action_atom == net_wm_state_maximized_vert ||
+                   action_atom == net_wm_state_maximized_horz) {
+            toggle_maximize(ev->window);
+        }
+        return;
+    }
+
+    /* WM_CHANGE_STATE — minimize request (e.g., gtk_window_iconify) */
+    if (ev->message_type == wm_change_state) {
+        if (ev->data.l[0] == 3 /* IconicState */) {
+            minimize_window(ev->window);
+        }
+        return;
+    }
+}
+
 static void handle_key_press(XKeyEvent *ev) {
     KeySym sym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 0);
+
+    /* Get focused window */
+    Window focused = None;
+    int revert;
+    XGetInputFocus(dpy, &focused, &revert);
+    if (focused == root || focused == None) focused = None;
 
     if (ev->state & Mod1Mask) {
         if (sym == XK_F4) {
             /* Alt+F4: close window */
-            Window focused;
-            int revert;
-            XGetInputFocus(dpy, &focused, &revert);
-            if (focused != None && focused != root)
+            if (focused != None)
                 send_delete(focused);
         } else if (sym == XK_Tab) {
-            /* Alt+Tab: cycle windows */
+            /* Alt+Tab: cycle windows (skip minimized) */
             if (nclients > 1) {
-                /* Move first to last, focus new first */
-                Window first = clients[0];
-                memmove(&clients[0], &clients[1], (nclients - 1) * sizeof(Window));
-                clients[nclients - 1] = first;
-                focus_window(clients[0]);
+                /* Find next non-minimized window */
+                int attempts = nclients;
+                do {
+                    Client first = clients[0];
+                    memmove(&clients[0], &clients[1], (nclients - 1) * sizeof(Client));
+                    clients[nclients - 1] = first;
+                    attempts--;
+                } while (attempts > 0 && clients[0].is_minimized);
+
+                if (!clients[0].is_minimized)
+                    focus_window(clients[0].win);
+            } else if (nclients == 1 && !clients[0].is_minimized) {
+                focus_window(clients[0].win);
             }
         } else if (sym == XK_space) {
             /* Alt+Space: launch app launcher */
@@ -412,43 +580,67 @@ static void handle_key_press(XKeyEvent *ev) {
                 execlp("blazeneuro-terminal", "blazeneuro-terminal", NULL);
                 exit(0);
             }
+        } else if (sym == XK_F11) {
+            /* Alt+F11: toggle fullscreen */
+            if (focused != None)
+                toggle_fullscreen(focused);
+        } else if (sym == XK_F9) {
+            /* Alt+F9: minimize */
+            if (focused != None)
+                minimize_window(focused);
+        } else if (sym == XK_F10) {
+            /* Alt+F10: toggle maximize */
+            if (focused != None)
+                toggle_maximize(focused);
+        }
+    }
+
+    if (ev->state & Mod4Mask) {
+        /* Super key shortcuts */
+        if (sym == XK_Left && focused != None) {
+            /* Super+Left: snap left */
+            snap_window(focused, 0);
+        } else if (sym == XK_Right && focused != None) {
+            /* Super+Right: snap right */
+            snap_window(focused, 1);
+        } else if (sym == XK_Up && focused != None) {
+            /* Super+Up: maximize */
+            toggle_maximize(focused);
+        } else if (sym == XK_Down && focused != None) {
+            /* Super+Down: restore or minimize */
+            Client *c = find_client(focused);
+            if (c && c->is_maximized)
+                toggle_maximize(focused);
+            else
+                minimize_window(focused);
+        } else if (sym == XK_d || sym == XK_D) {
+            /* Super+D: show desktop */
+            toggle_show_desktop();
+        } else if (sym == XK_e || sym == XK_E) {
+            /* Super+E: open file manager */
+            if (fork() == 0) {
+                execlp("blazeneuro-files", "blazeneuro-files", NULL);
+                exit(0);
+            }
+        } else if (sym == XK_l || sym == XK_L) {
+            /* Super+L: lock screen */
+            if (fork() == 0) {
+                execlp("loginctl", "loginctl", "lock-session", NULL);
+                exit(0);
+            }
         }
     }
 }
 
-static void handle_client_message(XClientMessageEvent *ev) {
-    if (ev->message_type == net_wm_state) {
-        const long action = ev->data.l[0]; /* 0 remove, 1 add, 2 toggle */
-        const Atom first = (Atom)ev->data.l[1];
-        const Atom second = (Atom)ev->data.l[2];
-
-        int want_full = 0;
-        int want_max = 0;
-
-        if (first == net_wm_state_fullscreen || second == net_wm_state_fullscreen) {
-            want_full = 1;
+/* ── Enter Notify — focus follows mouse ─────────────────── */
+static void handle_enter(XCrossingEvent *ev) {
+    if (ev->window != root) {
+        Client *c = find_client(ev->window);
+        if (c && !c->is_minimized) {
+            /* Only set input focus, don't raise */
+            XSetInputFocus(dpy, ev->window, RevertToPointerRoot, CurrentTime);
+            set_active(ev->window);
         }
-        if (first == net_wm_state_max_horz || first == net_wm_state_max_vert ||
-            second == net_wm_state_max_horz || second == net_wm_state_max_vert) {
-            want_max = 1;
-        }
-
-        ClientState *st = find_client_state(ev->window);
-        if (!st) return;
-
-        if (want_full) {
-            int new_state = (action == 2) ? !st->is_fullscreen : (action == 1);
-            set_fullscreen(ev->window, new_state);
-        }
-
-        if (want_max) {
-            int new_state = (action == 2) ? !st->is_maximized : (action == 1);
-            set_maximized(ev->window, new_state);
-        }
-    } else if (ev->message_type == net_active_window) {
-        focus_window(ev->window);
-    } else if (ev->message_type == net_close_window) {
-        send_delete(ev->window);
     }
 }
 
@@ -473,6 +665,7 @@ static void scan_existing(void) {
             XWindowAttributes wa;
             if (XGetWindowAttributes(dpy, wins[i], &wa) &&
                 wa.map_state == IsViewable && !wa.override_redirect) {
+                XSetWindowBorderWidth(dpy, wins[i], 0);
                 XSelectInput(dpy, wins[i], EnterWindowMask | FocusChangeMask |
                              PropertyChangeMask | StructureNotifyMask);
                 XGrabButton(dpy, 1, Mod1Mask, wins[i], True,
@@ -493,7 +686,8 @@ static int xerror(Display *d, XErrorEvent *ev) {
     (void)d;
     char msg[256];
     XGetErrorText(d, ev->error_code, msg, sizeof(msg));
-    fprintf(stderr, "BlazeNeuro WM: X error: %s\n", msg);
+    fprintf(stderr, "BlazeNeuro WM: X error: %s (request %d, resourceid %ld)\n",
+            msg, ev->request_code, ev->resourceid);
     return 0;
 }
 
@@ -521,7 +715,8 @@ int main(void) {
     XSelectInput(dpy, root,
                  SubstructureRedirectMask | SubstructureNotifyMask |
                  ButtonPressMask | PointerMotionMask |
-                 PropertyChangeMask | KeyPressMask);
+                 PropertyChangeMask | KeyPressMask |
+                 EnterWindowMask);
     XSync(dpy, False);
     XSetErrorHandler(xerror);
 
@@ -536,7 +731,7 @@ int main(void) {
 
     setup_ewmh();
 
-    /* Grab global keys */
+    /* Grab Alt key shortcuts */
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_F4), Mod1Mask, root, True,
              GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Tab), Mod1Mask, root, True,
@@ -545,10 +740,42 @@ int main(void) {
              GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Return), Mod1Mask, root, True,
              GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_F9), Mod1Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_F10), Mod1Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_F11), Mod1Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+
+    /* Grab Super key shortcuts */
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Left), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Right), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Up), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_Down), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_d), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_D), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_e), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_E), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_l), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
+    XGrabKey(dpy, XKeysymToKeycode(dpy, XK_L), Mod4Mask, root, True,
+             GrabModeAsync, GrabModeAsync);
 
     scan_existing();
 
     printf("BlazeNeuro WM started (%dx%d)\n", sw, sh);
+    printf("  Alt+Tab: switch windows\n");
+    printf("  Alt+F4: close | Alt+F9: minimize | Alt+F10: maximize | Alt+F11: fullscreen\n");
+    printf("  Super+Left/Right: snap | Super+Up: maximize | Super+D: show desktop\n");
+    printf("  Super+E: files | Super+L: lock | Alt+Space: launcher | Alt+Enter: terminal\n");
 
     /* Event loop */
     XEvent ev;
@@ -561,11 +788,9 @@ int main(void) {
             case DestroyNotify:    handle_destroy(&ev.xdestroywindow); break;
             case ButtonPress:      handle_button_press(&ev.xbutton); break;
             case ButtonRelease:    handle_button_release(&ev.xbutton); break;
-            case MotionNotify:
-                while (XCheckTypedEvent(dpy, MotionNotify, &ev)) {}
-                handle_motion(&ev.xmotion);
-                break;
+            case MotionNotify:     handle_motion(&ev.xmotion); break;
             case KeyPress:         handle_key_press(&ev.xkey); break;
+            case EnterNotify:      handle_enter(&ev.xcrossing); break;
             case ClientMessage:    handle_client_message(&ev.xclient); break;
         }
     }

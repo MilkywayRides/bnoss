@@ -402,11 +402,10 @@ print_step 9 "Configure LightDM"
 sudo mkdir -p "$ROOTFS/etc/lightdm/lightdm.conf.d"
 sudo tee "$ROOTFS/etc/lightdm/lightdm.conf.d/50-blazeneuro.conf" > /dev/null << EOF
 [Seat:*]
-autologin-user=user
-autologin-user-timeout=0
 user-session=blazeneuro
 greeter-session=lightdm-gtk-greeter
 greeter-hide-users=false
+greeter-allow-guest=false
 EOF
 
 sudo tee "$ROOTFS/etc/lightdm/lightdm-gtk-greeter.conf" > /dev/null << 'GREETER'

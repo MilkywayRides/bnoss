@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include "../common/theme.h"
+#include "../common/titlebar.h"
 
 enum {
     COL_PID,
@@ -109,10 +110,10 @@ int main(int argc, char *argv[]) {
 
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
+    /* Main content */
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_container_add(GTK_CONTAINER(win), vbox);
 
-    /* Header */
+    /* Header with buttons */
     GtkWidget *header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
     gtk_style_context_add_class(gtk_widget_get_style_context(header), "task-header");
 
@@ -161,6 +162,9 @@ int main(int argc, char *argv[]) {
 
     refresh_processes();
     g_timeout_add_seconds(5, on_timer, NULL);
+
+    /* Add titlebar + content */
+    blazeneuro_add_titlebar(win, "Task Viewer", vbox);
 
     gtk_widget_show_all(win);
     gtk_main();

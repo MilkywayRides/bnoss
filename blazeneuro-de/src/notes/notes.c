@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "../common/theme.h"
+#include "../common/titlebar.h"
 
 static GtkWidget *text_view;
 static GtkWidget *word_count_label;
@@ -105,18 +106,8 @@ int main(int argc, char *argv[]) {
 
     g_signal_connect(win, "destroy", G_CALLBACK(on_destroy), NULL);
 
+    /* Main content */
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_container_add(GTK_CONTAINER(win), vbox);
-
-    /* Header */
-    GtkWidget *header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_widget_set_margin_start(header, 16);
-    gtk_widget_set_margin_top(header, 12);
-    gtk_widget_set_margin_bottom(header, 8);
-    GtkWidget *title = gtk_label_new("Notes");
-    gtk_style_context_add_class(gtk_widget_get_style_context(title), "header");
-    gtk_box_pack_start(GTK_BOX(header), title, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(vbox), header, FALSE, FALSE, 0);
 
     /* Text editor */
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
@@ -155,6 +146,9 @@ int main(int argc, char *argv[]) {
     update_word_count(buffer);
 
     g_timeout_add_seconds(10, autosave, NULL);
+
+    /* Add titlebar + content */
+    blazeneuro_add_titlebar(win, "Notes", vbox);
 
     gtk_widget_show_all(win);
     gtk_main();
