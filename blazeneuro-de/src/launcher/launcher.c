@@ -206,11 +206,7 @@ int main(int argc, char *argv[]) {
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     gtk_window_set_default_size(GTK_WINDOW(win), 600, 60);
     gtk_window_set_resizable(GTK_WINDOW(win), FALSE);
-    gtk_widget_set_app_paintable(win, TRUE);
-
-    GdkScreen *scr = gtk_widget_get_screen(win);
-    GdkVisual *vis = gdk_screen_get_rgba_visual(scr);
-    if (vis) gtk_widget_set_visual(win, vis);
+    blazeneuro_style_window(win, "app-launcher");
 
     gtk_style_context_add_class(gtk_widget_get_style_context(win), "launcher-window");
 

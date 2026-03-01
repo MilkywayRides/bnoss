@@ -42,4 +42,14 @@ static inline void blazeneuro_setup_rgba(GtkWidget *win) {
     gtk_widget_set_app_paintable(win, TRUE);
 }
 
+
+static inline void blazeneuro_style_window(GtkWidget *win, const char *role_class) {
+    blazeneuro_setup_rgba(win);
+    GtkStyleContext *ctx = gtk_widget_get_style_context(win);
+    gtk_style_context_add_class(ctx, "app-window");
+    if (role_class && role_class[0]) {
+        gtk_style_context_add_class(ctx, role_class);
+    }
+}
+
 #endif /* BLAZENEURO_THEME_H */

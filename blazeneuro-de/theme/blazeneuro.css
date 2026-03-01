@@ -28,6 +28,22 @@
     outline: none;
 }
 
+/* ── App window baseline (shadcn-like) ───────────────────── */
+.app-window {
+    background-color: rgba(9, 9, 11, 0.94);
+    color: #fafafa;
+}
+
+.app-window headerbar,
+.app-window .header {
+    color: #fafafa;
+}
+
+.app-window scrolledwindow,
+.app-window viewport {
+    background-color: transparent;
+}
+
 /* ── Window ─────────────────────────────────────────────── */
 window {
     background-color: rgba(9, 9, 11, 0.92);
@@ -442,6 +458,29 @@ progressbar progress {
     font-weight: 400;
 }
 
+.wm-control,
+.wm-control-close {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: #a1a1aa;
+    min-width: 26px;
+    min-height: 24px;
+    padding: 0;
+    margin: 4px 2px;
+    font-size: 12px;
+}
+
+.wm-control:hover {
+    background-color: #27272a;
+    color: #fafafa;
+}
+
+.wm-control-close:hover {
+    background-color: #7f1d1d;
+    color: #fafafa;
+}
+
 /* ── Dock ────────────────────────────────────────────────── */
 .dock-window {
     background-color: rgba(9, 9, 11, 0.75);
@@ -683,4 +722,17 @@ label.header {
 /* ── Scrolled Window ────────────────────────────────────── */
 scrolledwindow {
     background-color: transparent;
+}
+
+
+.app-settings .sidebar,
+.app-files .sidebar {
+    background-color: rgba(9, 9, 11, 0.75);
+    border-right: 1px solid #27272a;
+}
+
+.app-settings .settings-section,
+.app-tasks frame,
+.app-notes .notes-statusbar {
+    border-radius: 12px;
 }

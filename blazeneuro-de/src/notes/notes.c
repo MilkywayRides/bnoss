@@ -101,11 +101,7 @@ int main(int argc, char *argv[]) {
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "Notes");
     gtk_window_set_default_size(GTK_WINDOW(win), 700, 500);
-    gtk_widget_set_app_paintable(win, TRUE);
-
-    GdkScreen *scr = gtk_widget_get_screen(win);
-    GdkVisual *vis = gdk_screen_get_rgba_visual(scr);
-    if (vis) gtk_widget_set_visual(win, vis);
+    blazeneuro_style_window(win, "app-notes");
 
     g_signal_connect(win, "destroy", G_CALLBACK(on_destroy), NULL);
 
