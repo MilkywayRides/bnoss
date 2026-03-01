@@ -39,6 +39,8 @@ static Atom net_wm_window_type_dock, net_wm_window_type_dialog;
 static Atom net_wm_window_type_normal, net_wm_strut;
 static Atom net_wm_strut_partial, net_active_window;
 static Atom net_supporting_wm_check, net_client_list;
+static Atom net_wm_state_max_horz, net_wm_state_max_vert;
+static Atom net_close_window;
 static Atom wm_protocols, wm_delete_window, wm_state;
 
 /* Client tracking */
@@ -46,12 +48,42 @@ static Atom wm_protocols, wm_delete_window, wm_state;
 static Window clients[MAX_CLIENTS];
 static int nclients = 0;
 
+typedef struct {
+    Window win;
+    int saved_x, saved_y, saved_w, saved_h;
+    int saved_valid;
+    int is_maximized;
+    int is_fullscreen;
+} ClientState;
+
+static ClientState client_states[MAX_CLIENTS];
+
+static int topbar_height(void) { return 32; }
+static int dock_height(void) { return 72; }
+
+static void usable_area(int *x, int *y, int *w, int *h) {
+    *x = 0;
+    *y = topbar_height();
+    *w = sw;
+    *h = sh - topbar_height() - dock_height();
+    if (*h < 80) *h = sh;
+}
+
+static ClientState *find_client_state(Window w) {
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (client_states[i].win == w) return &client_states[i];
+    }
+    return NULL;
+}
+
 /* ── EWMH Setup ────────────────────────────────────────── */
 static void setup_ewmh(void) {
     net_supported           = XInternAtom(dpy, "_NET_SUPPORTED", False);
     net_wm_name             = XInternAtom(dpy, "_NET_WM_NAME", False);
     net_wm_state            = XInternAtom(dpy, "_NET_WM_STATE", False);
     net_wm_state_fullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+    net_wm_state_max_horz   = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+    net_wm_state_max_vert   = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_VERT", False);
     net_wm_window_type      = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     net_wm_window_type_dock = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
     net_wm_window_type_dialog = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
@@ -61,6 +93,7 @@ static void setup_ewmh(void) {
     net_active_window       = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
     net_supporting_wm_check = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
     net_client_list         = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+    net_close_window        = XInternAtom(dpy, "_NET_CLOSE_WINDOW", False);
     wm_protocols            = XInternAtom(dpy, "WM_PROTOCOLS", False);
     wm_delete_window        = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
     wm_state                = XInternAtom(dpy, "WM_STATE", False);
@@ -80,7 +113,8 @@ static void setup_ewmh(void) {
     Atom supported[] = {
         net_supported, net_wm_name, net_wm_state,
         net_wm_state_fullscreen, net_wm_window_type,
-        net_active_window, net_client_list,
+        net_wm_state_max_horz, net_wm_state_max_vert,
+        net_close_window, net_active_window, net_client_list,
         net_wm_strut, net_wm_strut_partial
     };
     XChangeProperty(dpy, root, net_supported, XA_ATOM, 32,
@@ -95,6 +129,13 @@ static void add_client(Window w) {
         XChangeProperty(dpy, root, net_client_list, XA_WINDOW, 32,
                         PropModeReplace, (unsigned char *)clients, nclients);
     }
+
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (client_states[i].win == None) {
+            client_states[i].win = w;
+            break;
+        }
+    }
 }
 
 static void remove_client(Window w) {
@@ -105,9 +146,12 @@ static void remove_client(Window w) {
             nclients--;
             XChangeProperty(dpy, root, net_client_list, XA_WINDOW, 32,
                             PropModeReplace, (unsigned char *)clients, nclients);
-            return;
+            break;
         }
     }
+
+    ClientState *st = find_client_state(w);
+    if (st) memset(st, 0, sizeof(*st));
 }
 
 static void set_active(Window w) {
@@ -163,6 +207,62 @@ static int send_delete(Window w) {
     return found;
 }
 
+static void set_maximized(Window w, int maximize) {
+    ClientState *st = find_client_state(w);
+    if (!st) return;
+
+    XWindowAttributes wa;
+    if (!XGetWindowAttributes(dpy, w, &wa)) return;
+
+    if (maximize) {
+        if (!st->saved_valid) {
+            st->saved_x = wa.x;
+            st->saved_y = wa.y;
+            st->saved_w = wa.width;
+            st->saved_h = wa.height;
+            st->saved_valid = 1;
+        }
+        int x, y, w_area, h_area;
+        usable_area(&x, &y, &w_area, &h_area);
+        XMoveResizeWindow(dpy, w, x, y, w_area, h_area);
+        st->is_maximized = 1;
+        st->is_fullscreen = 0;
+    } else {
+        if (st->saved_valid) {
+            XMoveResizeWindow(dpy, w, st->saved_x, st->saved_y, st->saved_w, st->saved_h);
+            st->saved_valid = 0;
+        }
+        st->is_maximized = 0;
+    }
+}
+
+static void set_fullscreen(Window w, int fullscreen) {
+    ClientState *st = find_client_state(w);
+    if (!st) return;
+
+    XWindowAttributes wa;
+    if (!XGetWindowAttributes(dpy, w, &wa)) return;
+
+    if (fullscreen) {
+        if (!st->saved_valid) {
+            st->saved_x = wa.x;
+            st->saved_y = wa.y;
+            st->saved_w = wa.width;
+            st->saved_h = wa.height;
+            st->saved_valid = 1;
+        }
+        XMoveResizeWindow(dpy, w, 0, 0, sw, sh);
+        st->is_fullscreen = 1;
+        st->is_maximized = 0;
+    } else {
+        if (st->saved_valid) {
+            XMoveResizeWindow(dpy, w, st->saved_x, st->saved_y, st->saved_w, st->saved_h);
+            st->saved_valid = 0;
+        }
+        st->is_fullscreen = 0;
+    }
+}
+
 /* ── Focus ──────────────────────────────────────────────── */
 static void focus_window(Window w) {
     XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
@@ -184,20 +284,17 @@ static void handle_map_request(XMapRequestEvent *ev) {
         return;
     }
 
-    /* Center new windows, reserve space for topbar(32px) and dock(72px) */
-    int topbar_h = 32;
-    int dock_h = 72;
-    int avail_w = sw;
-    int avail_h = sh - topbar_h - dock_h;
+    int ax, ay, aw, ah;
+    usable_area(&ax, &ay, &aw, &ah);
 
-    int win_w = wa.width > 0 ? wa.width : avail_w * 2 / 3;
-    int win_h = wa.height > 0 ? wa.height : avail_h * 2 / 3;
+    int win_w = wa.width > 0 ? wa.width : aw * 2 / 3;
+    int win_h = wa.height > 0 ? wa.height : ah * 2 / 3;
 
-    if (win_w > avail_w) win_w = avail_w;
-    if (win_h > avail_h) win_h = avail_h;
+    if (win_w > aw) win_w = aw;
+    if (win_h > ah) win_h = ah;
 
-    int x = (avail_w - win_w) / 2;
-    int y = topbar_h + (avail_h - win_h) / 2;
+    int x = ax + (aw - win_w) / 2;
+    int y = ay + (ah - win_h) / 2;
 
     XMoveResizeWindow(dpy, w, x, y, win_w, win_h);
     XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask |
@@ -319,6 +416,42 @@ static void handle_key_press(XKeyEvent *ev) {
     }
 }
 
+static void handle_client_message(XClientMessageEvent *ev) {
+    if (ev->message_type == net_wm_state) {
+        const long action = ev->data.l[0]; /* 0 remove, 1 add, 2 toggle */
+        const Atom first = (Atom)ev->data.l[1];
+        const Atom second = (Atom)ev->data.l[2];
+
+        int want_full = 0;
+        int want_max = 0;
+
+        if (first == net_wm_state_fullscreen || second == net_wm_state_fullscreen) {
+            want_full = 1;
+        }
+        if (first == net_wm_state_max_horz || first == net_wm_state_max_vert ||
+            second == net_wm_state_max_horz || second == net_wm_state_max_vert) {
+            want_max = 1;
+        }
+
+        ClientState *st = find_client_state(ev->window);
+        if (!st) return;
+
+        if (want_full) {
+            int new_state = (action == 2) ? !st->is_fullscreen : (action == 1);
+            set_fullscreen(ev->window, new_state);
+        }
+
+        if (want_max) {
+            int new_state = (action == 2) ? !st->is_maximized : (action == 1);
+            set_maximized(ev->window, new_state);
+        }
+    } else if (ev->message_type == net_active_window) {
+        focus_window(ev->window);
+    } else if (ev->message_type == net_close_window) {
+        send_delete(ev->window);
+    }
+}
+
 /* ── Signal Handler ─────────────────────────────────────── */
 static void sigchld_handler(int sig) {
     (void)sig;
@@ -428,8 +561,12 @@ int main(void) {
             case DestroyNotify:    handle_destroy(&ev.xdestroywindow); break;
             case ButtonPress:      handle_button_press(&ev.xbutton); break;
             case ButtonRelease:    handle_button_release(&ev.xbutton); break;
-            case MotionNotify:     handle_motion(&ev.xmotion); break;
+            case MotionNotify:
+                while (XCheckTypedEvent(dpy, MotionNotify, &ev)) {}
+                handle_motion(&ev.xmotion);
+                break;
             case KeyPress:         handle_key_press(&ev.xkey); break;
+            case ClientMessage:    handle_client_message(&ev.xclient); break;
         }
     }
 

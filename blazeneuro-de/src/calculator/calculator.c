@@ -143,11 +143,7 @@ int main(int argc, char *argv[]) {
     gtk_window_set_title(GTK_WINDOW(win), "Calculator");
     gtk_window_set_default_size(GTK_WINDOW(win), 320, 480);
     gtk_window_set_resizable(GTK_WINDOW(win), FALSE);
-    gtk_widget_set_app_paintable(win, TRUE);
-
-    GdkScreen *scr = gtk_widget_get_screen(win);
-    GdkVisual *vis = gdk_screen_get_rgba_visual(scr);
-    if (vis) gtk_widget_set_visual(win, vis);
+    blazeneuro_style_window(win, "app-calculator");
 
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
