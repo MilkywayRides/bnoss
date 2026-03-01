@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "../common/theme.h"
+#include "../common/titlebar.h"
 
 
 /* ── Apply Wallpaper ────────────────────────────────────── */
@@ -111,17 +112,6 @@ int main(int argc, char *argv[]) {
 
     /* Main content */
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_container_add(GTK_CONTAINER(win), vbox);
-
-    /* Header */
-    GtkWidget *header_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_widget_set_margin_start(header_box, 24);
-    gtk_widget_set_margin_top(header_box, 20);
-    gtk_widget_set_margin_bottom(header_box, 12);
-    GtkWidget *header = gtk_label_new("Settings");
-    gtk_style_context_add_class(gtk_widget_get_style_context(header), "header");
-    gtk_box_pack_start(GTK_BOX(header_box), header, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(vbox), header_box, FALSE, FALSE, 0);
 
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_box_pack_start(GTK_BOX(vbox), scroll, TRUE, TRUE, 0);
@@ -140,6 +130,40 @@ int main(int argc, char *argv[]) {
 
     gtk_box_pack_start(GTK_BOX(content), appearance, FALSE, FALSE, 0);
 
+    /* Keyboard Shortcuts section */
+    GtkWidget *shortcuts = create_section("Keyboard Shortcuts");
+    GtkWidget *sc_content = section_content(shortcuts);
+
+    GtkWidget *sc1 = gtk_label_new("Alt + Tab");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc1), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("Switch Windows", sc1), FALSE, FALSE, 0);
+
+    GtkWidget *sc2 = gtk_label_new("Alt + F4");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc2), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("Close Window", sc2), FALSE, FALSE, 0);
+
+    GtkWidget *sc3 = gtk_label_new("Alt + Space");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc3), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("App Launcher", sc3), FALSE, FALSE, 0);
+
+    GtkWidget *sc4 = gtk_label_new("Alt + Enter");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc4), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("Open Terminal", sc4), FALSE, FALSE, 0);
+
+    GtkWidget *sc5 = gtk_label_new("Super + ←/→");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc5), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("Snap Window", sc5), FALSE, FALSE, 0);
+
+    GtkWidget *sc6 = gtk_label_new("Super + ↑");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc6), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("Maximize Window", sc6), FALSE, FALSE, 0);
+
+    GtkWidget *sc7 = gtk_label_new("Super + D");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc7), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("Show Desktop", sc7), FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(content), shortcuts, FALSE, FALSE, 0);
+
     /* About section */
     GtkWidget *about = create_section("About");
     GtkWidget *about_content = section_content(about);
@@ -157,6 +181,9 @@ int main(int argc, char *argv[]) {
     gtk_box_pack_start(GTK_BOX(about_content), create_row("Desktop", de_label), FALSE, FALSE, 0);
 
     gtk_box_pack_start(GTK_BOX(content), about, FALSE, FALSE, 0);
+
+    /* Add titlebar + content */
+    blazeneuro_add_titlebar(win, "Settings", vbox);
 
     gtk_widget_show_all(win);
     gtk_main();

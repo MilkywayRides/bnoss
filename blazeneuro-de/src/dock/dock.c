@@ -1,7 +1,6 @@
 /*
  * BlazeNeuro Dock
- * macOS-like bottom dock with app icons and hover effects.
- * Written in C with GTK3.
+ * macOS-like bottom dock with app icons, hover effects, and context menus.
  */
 
 #include <gtk/gtk.h>
@@ -72,6 +71,60 @@ static void on_realize(GtkWidget *widget, gpointer data) {
                     PropModeReplace, (unsigned char *)struts, 12);
 }
 
+/* ── Dock Button Context Menu ───────────────────────────── */
+static void ctx_launch(GtkWidget *w, gpointer d) {
+    (void)w;
+    const char *cmd = (const char *)d;
+    gchar *full_cmd = g_strdup_printf("%s &", cmd);
+    g_spawn_command_line_async(full_cmd, NULL);
+    g_free(full_cmd);
+}
+
+static GtkWidget *_dock_make_menu_item(const char *icon_name, const char *label,
+                                        GCallback cb, gpointer data) {
+    GtkWidget *item = gtk_menu_item_new();
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+
+    if (icon_name) {
+        GtkWidget *icon = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_MENU);
+        gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
+    }
+
+    GtkWidget *lbl = gtk_label_new(label);
+    gtk_label_set_xalign(GTK_LABEL(lbl), 0);
+    gtk_box_pack_start(GTK_BOX(hbox), lbl, TRUE, TRUE, 0);
+    gtk_container_add(GTK_CONTAINER(item), hbox);
+
+    if (cb) g_signal_connect(item, "activate", cb, data);
+    return item;
+}
+
+static gboolean on_dock_button_press(GtkWidget *widget, GdkEventButton *ev, gpointer data) {
+    (void)widget;
+    int app_idx = GPOINTER_TO_INT(data);
+
+    if (ev->type != GDK_BUTTON_PRESS || ev->button != 3) return FALSE;
+    if (app_idx < 0 || dock_apps[app_idx].name == NULL) return FALSE;
+
+    GtkWidget *menu = gtk_menu_new();
+
+    /* App name header (insensitive) */
+    GtkWidget *header = gtk_menu_item_new_with_label(dock_apps[app_idx].name);
+    gtk_widget_set_sensitive(header, FALSE);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), header);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    /* Launch new instance */
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu),
+        _dock_make_menu_item("list-add", "New Window",
+                             G_CALLBACK(ctx_launch),
+                             (gpointer)dock_apps[app_idx].exec));
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent *)ev);
+    return TRUE;
+}
+
 /* ── Main ───────────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
@@ -111,7 +164,14 @@ int main(int argc, char *argv[]) {
         gtk_image_set_pixel_size(GTK_IMAGE(icon), ICON_SIZE);
         gtk_container_add(GTK_CONTAINER(btn), icon);
 
+        /* Left-click: launch */
         g_signal_connect(btn, "clicked", G_CALLBACK(launch_app), (gpointer)dock_apps[i].exec);
+
+        /* Right-click: context menu */
+        gtk_widget_add_events(btn, GDK_BUTTON_PRESS_MASK);
+        g_signal_connect(btn, "button-press-event", G_CALLBACK(on_dock_button_press),
+                         GINT_TO_POINTER(i));
+
         gtk_box_pack_start(GTK_BOX(box), btn, FALSE, FALSE, 0);
     }
 

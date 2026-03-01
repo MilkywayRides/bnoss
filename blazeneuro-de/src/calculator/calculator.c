@@ -11,6 +11,7 @@
 #include <math.h>
 
 #include "../common/theme.h"
+#include "../common/titlebar.h"
 
 static GtkWidget *display_label;
 static GtkWidget *expr_label;
@@ -151,9 +152,9 @@ int main(int argc, char *argv[]) {
 
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
+    /* Main content */
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
-    gtk_container_add(GTK_CONTAINER(win), vbox);
 
     /* Display area */
     GtkWidget *display_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
@@ -218,6 +219,9 @@ int main(int argc, char *argv[]) {
     gtk_grid_attach(GTK_GRID(grid), make_btn("0", "calc-btn", G_CALLBACK(on_digit), (gpointer)d0), 0, 4, 2, 1);
     gtk_grid_attach(GTK_GRID(grid), make_btn(".", "calc-btn", G_CALLBACK(on_digit), (gpointer)dot), 2, 4, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), make_btn("=", "calc-btn-equals", G_CALLBACK(on_equals), NULL), 3, 4, 1, 1);
+
+    /* Add titlebar + content */
+    blazeneuro_add_titlebar(win, "Calculator", vbox);
 
     gtk_widget_show_all(win);
     gtk_main();
