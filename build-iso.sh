@@ -406,6 +406,8 @@ user-session=blazeneuro
 greeter-session=lightdm-gtk-greeter
 greeter-hide-users=false
 greeter-allow-guest=false
+autologin-user=user
+autologin-user-timeout=0
 EOF
 
 sudo tee "$ROOTFS/etc/lightdm/lightdm-gtk-greeter.conf" > /dev/null << 'GREETER'
@@ -414,6 +416,7 @@ theme-name = Adwaita-dark
 icon-theme-name = Papirus-Dark
 font-name = Inter 11
 background = #09090b
+hide-user-image = false
 GREETER
 
 # Ensure autologin group exists and user is in it

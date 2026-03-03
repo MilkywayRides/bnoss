@@ -53,6 +53,9 @@ xset s off 2>/dev/null
 xset -dpms 2>/dev/null
 xset s noblank 2>/dev/null
 
+# ── Force proper color depth and refresh ───────────────
+xrandr --output $(xrandr | grep " connected" | head -1 | awk '{print $1}') --mode $(xrandr | grep -A1 " connected" | tail -1 | awk '{print $1}') 2>/dev/null || true
+
 # ── Set wallpaper ───────────────────────────────────────
 if [ -f "$HOME/.blazeneuro-wallpaper" ]; then
     WP=$(cat "$HOME/.blazeneuro-wallpaper")
@@ -72,17 +75,9 @@ log "Wallpaper set"
 # ── Start compositor (with better fallback) ────────────
 start_compositor() {
     if [ "$IS_VIRTUAL" -eq 1 ]; then
-        # In VMs, picom often crashes causing color corruption.
-        # Use xrender backend with minimal features for stability.
-        log "VM detected — using lightweight compositor"
-        picom --backend xrender \
-              --no-vsync \
-              --no-fading \
-              --shadow-radius 8 \
-              --shadow-opacity 0.2 \
-              --no-dock-shadow \
-              --no-dnd-shadow \
-              -b 2>>"$SESSION_LOG" &
+        # In VMs, disable compositor to prevent color corruption and crashes
+        log "VM detected — skipping compositor to prevent display issues"
+        return 0
     elif [ -f "$SHARE_DIR/picom.conf" ]; then
         log "Using full compositor config"
         picom --config "$SHARE_DIR/picom.conf" -b 2>>"$SESSION_LOG" &
@@ -105,6 +100,9 @@ start_compositor || true
 
 # ── Start desktop components (parallelized) ────────────
 log "Starting desktop components..."
+
+# Ensure X server is ready
+sleep 1
 
 blazeneuro-desktop 2>>"$SESSION_LOG" &
 blazeneuro-topbar 2>>"$SESSION_LOG" &
