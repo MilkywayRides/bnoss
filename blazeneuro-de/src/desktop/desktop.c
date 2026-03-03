@@ -95,6 +95,13 @@ static void open_notes(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd(
 static void open_tasks(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-taskviewer"); }
 static void open_browser(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("chromium || chromium-browser || firefox"); }
 static void open_launcher(GtkWidget *w, gpointer d) { (void)w; (void)d; launch_cmd("blazeneuro-launcher"); }
+static void open_trash(GtkWidget *w, gpointer d) { 
+    (void)w; (void)d; 
+    const char *home = g_get_home_dir();
+    char cmd[512];
+    g_snprintf(cmd, sizeof(cmd), "blazeneuro-files '%s/.local/share/Trash/files'", home);
+    launch_cmd(cmd);
+}
 
 static void choose_wallpaper(GtkWidget *widget, gpointer data) {
     (void)widget; (void)data;
@@ -221,6 +228,9 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *ev, gpointer 
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
 
         /* ── Desktop actions ────────────────────────────── */
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu),
+            make_menu_item("user-trash", "Open Trash",
+                           G_CALLBACK(open_trash)));
         gtk_menu_shell_append(GTK_MENU_SHELL(menu),
             make_menu_item("preferences-desktop-wallpaper", "Change Wallpaper…",
                            G_CALLBACK(choose_wallpaper)));

@@ -101,15 +101,12 @@ start_compositor || true
 # ── Start desktop components (parallelized) ────────────
 log "Starting desktop components..."
 
-# Ensure X server is ready
-sleep 1
+# Minimal delay for X server
+sleep 0.3
 
 blazeneuro-desktop 2>>"$SESSION_LOG" &
 blazeneuro-topbar 2>>"$SESSION_LOG" &
-sleep 0.15
-
 blazeneuro-dock 2>>"$SESSION_LOG" &
-sleep 0.1
 
 log "Desktop, topbar, dock started"
 

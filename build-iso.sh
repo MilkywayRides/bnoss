@@ -392,6 +392,10 @@ echo 'user:blazeneuro' | chpasswd
 echo 'root:root' | chpasswd
 echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user
 chmod 0440 /etc/sudoers.d/user
+
+# Create trash directory structure
+mkdir -p /home/user/.local/share/Trash/{files,info}
+chown -R user:user /home/user/.local
 "
 
 echo "  ✓ User account created (user/blazeneuro)"
@@ -406,8 +410,6 @@ user-session=blazeneuro
 greeter-session=lightdm-gtk-greeter
 greeter-hide-users=false
 greeter-allow-guest=false
-autologin-user=user
-autologin-user-timeout=0
 EOF
 
 sudo tee "$ROOTFS/etc/lightdm/lightdm-gtk-greeter.conf" > /dev/null << 'GREETER'

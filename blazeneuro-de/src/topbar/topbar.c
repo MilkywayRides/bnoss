@@ -103,35 +103,6 @@ static void toggle_active_state(Atom atom1, Atom atom2) {
     send_client_message(xdpy, active, net_wm_state, 2, atom1, atom2); /* toggle */
 }
 
-static void on_close_clicked(GtkButton *btn, gpointer data) {
-    (void)btn; (void)data;
-    close_active_window();
-}
-
-static void on_minimize_clicked(GtkButton *btn, gpointer data) {
-    (void)btn; (void)data;
-    minimize_active_window();
-}
-
-static void on_maximize_clicked(GtkButton *btn, gpointer data) {
-    (void)btn; (void)data;
-    GdkDisplay *gdk_display = gdk_display_get_default();
-    if (!gdk_display) return;
-    Display *xdpy = gdk_x11_display_get_xdisplay(gdk_display);
-    Atom horz = XInternAtom(xdpy, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-    Atom vert = XInternAtom(xdpy, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-    toggle_active_state(horz, vert);
-}
-
-static void on_fullscreen_clicked(GtkButton *btn, gpointer data) {
-    (void)btn; (void)data;
-    GdkDisplay *gdk_display = gdk_display_get_default();
-    if (!gdk_display) return;
-    Display *xdpy = gdk_x11_display_get_xdisplay(gdk_display);
-    Atom fullscreen = XInternAtom(xdpy, "_NET_WM_STATE_FULLSCREEN", False);
-    toggle_active_state(fullscreen, 0);
-}
-
 static void on_settings_clicked(GtkButton *btn, gpointer data) {
     (void)btn;
     GtkWindow *parent = GTK_WINDOW(data);
@@ -202,30 +173,32 @@ int main(int argc, char *argv[]) {
     GtkWidget *spacer = gtk_label_new("");
     gtk_box_pack_start(GTK_BOX(hbox), spacer, TRUE, TRUE, 0);
 
+    /* System tray icons */
+    GtkWidget *wifi_btn = gtk_button_new_with_label("📶");
+    gtk_style_context_add_class(gtk_widget_get_style_context(wifi_btn), "system-tray-btn");
+    gtk_widget_set_tooltip_text(wifi_btn, "Network");
+    gtk_box_pack_end(GTK_BOX(hbox), wifi_btn, FALSE, FALSE, 2);
+
+    GtkWidget *bluetooth_btn = gtk_button_new_with_label("🔵");
+    gtk_style_context_add_class(gtk_widget_get_style_context(bluetooth_btn), "system-tray-btn");
+    gtk_widget_set_tooltip_text(bluetooth_btn, "Bluetooth");
+    gtk_box_pack_end(GTK_BOX(hbox), bluetooth_btn, FALSE, FALSE, 2);
+
+    GtkWidget *volume_btn = gtk_button_new_with_label("🔊");
+    gtk_style_context_add_class(gtk_widget_get_style_context(volume_btn), "system-tray-btn");
+    gtk_widget_set_tooltip_text(volume_btn, "Volume");
+    gtk_box_pack_end(GTK_BOX(hbox), volume_btn, FALSE, FALSE, 2);
+
+    GtkWidget *battery_btn = gtk_button_new_with_label("🔋");
+    gtk_style_context_add_class(gtk_widget_get_style_context(battery_btn), "system-tray-btn");
+    gtk_widget_set_tooltip_text(battery_btn, "Battery");
+    gtk_box_pack_end(GTK_BOX(hbox), battery_btn, FALSE, FALSE, 2);
+
     GtkWidget *settings_btn = gtk_button_new_with_label("⚙");
-    gtk_style_context_add_class(gtk_widget_get_style_context(settings_btn), "wm-control");
+    gtk_style_context_add_class(gtk_widget_get_style_context(settings_btn), "system-tray-btn");
+    gtk_widget_set_tooltip_text(settings_btn, "Settings");
     g_signal_connect(settings_btn, "clicked", G_CALLBACK(on_settings_clicked), win);
     gtk_box_pack_end(GTK_BOX(hbox), settings_btn, FALSE, FALSE, 2);
-
-    GtkWidget *close_btn = gtk_button_new_with_label("✕");
-    gtk_style_context_add_class(gtk_widget_get_style_context(close_btn), "wm-control-close");
-    g_signal_connect(close_btn, "clicked", G_CALLBACK(on_close_clicked), NULL);
-    gtk_box_pack_end(GTK_BOX(hbox), close_btn, FALSE, FALSE, 2);
-
-    GtkWidget *fullscreen_btn = gtk_button_new_with_label("⛶");
-    gtk_style_context_add_class(gtk_widget_get_style_context(fullscreen_btn), "wm-control");
-    g_signal_connect(fullscreen_btn, "clicked", G_CALLBACK(on_fullscreen_clicked), NULL);
-    gtk_box_pack_end(GTK_BOX(hbox), fullscreen_btn, FALSE, FALSE, 2);
-
-    GtkWidget *maximize_btn = gtk_button_new_with_label("▢");
-    gtk_style_context_add_class(gtk_widget_get_style_context(maximize_btn), "wm-control");
-    g_signal_connect(maximize_btn, "clicked", G_CALLBACK(on_maximize_clicked), NULL);
-    gtk_box_pack_end(GTK_BOX(hbox), maximize_btn, FALSE, FALSE, 2);
-
-    GtkWidget *minimize_btn = gtk_button_new_with_label("—");
-    gtk_style_context_add_class(gtk_widget_get_style_context(minimize_btn), "wm-control");
-    g_signal_connect(minimize_btn, "clicked", G_CALLBACK(on_minimize_clicked), NULL);
-    gtk_box_pack_end(GTK_BOX(hbox), minimize_btn, FALSE, FALSE, 2);
 
     GtkWidget *clock_label = gtk_label_new("");
     gtk_style_context_add_class(gtk_widget_get_style_context(clock_label), "topbar-clock");

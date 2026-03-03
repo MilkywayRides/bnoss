@@ -75,53 +75,77 @@ decoration {
     letter-spacing: 0.3px;
 }
 
-/* Traffic-light window control buttons */
+/* Traffic-light window control buttons - RIGHT SIDE with solid colors and icons */
 .titlebar-btn {
-    min-width: 14px;
-    min-height: 14px;
-    max-width: 14px;
-    max-height: 14px;
+    min-width: 32px;
+    min-height: 32px;
     padding: 0;
-    margin: 0;
+    margin: 0 2px;
     border: none;
-    border-radius: 999px;
-    background-color: #3f3f46;
+    border-radius: 8px;
+    background-color: transparent;
     transition: all 150ms ease;
-    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+    color: #a1a1aa;
 }
 
 .titlebar-btn:hover {
-    transform: scale(1.15);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
 }
 
 .titlebar-btn-close {
-    background-color: #ef4444;
+    background-color: transparent;
+    color: #a1a1aa;
 }
 
 .titlebar-btn-close:hover {
-    background-color: #f87171;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5),
-        inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+    background-color: #ef4444;
+    color: #ffffff;
 }
 
 .titlebar-btn-minimize {
-    background-color: #eab308;
+    background-color: transparent;
+    color: #a1a1aa;
 }
 
 .titlebar-btn-minimize:hover {
-    background-color: #facc15;
-    box-shadow: 0 0 8px rgba(234, 179, 8, 0.5),
-        inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
 }
 
 .titlebar-btn-fullscreen {
-    background-color: #22c55e;
+    background-color: transparent;
+    color: #a1a1aa;
 }
 
 .titlebar-btn-fullscreen:hover {
-    background-color: #4ade80;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5),
-        inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
+}
+
+.titlebar-btn-close:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+}
+
+.titlebar-btn-minimize {
+    background-color: transparent;
+    color: #a1a1aa;
+}
+
+.titlebar-btn-minimize:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
+}
+
+.titlebar-btn-fullscreen {
+    background-color: transparent;
+    color: #a1a1aa;
+}
+
+.titlebar-btn-fullscreen:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
 }
 
 /* ── Header Bar (if used) ──────────────────────────────── */
@@ -561,6 +585,23 @@ placessidebar row:selected {
     font-size: 13px;
     font-weight: 500;
     letter-spacing: 0.3px;
+}
+
+.system-tray-btn {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #a1a1aa;
+    min-width: 32px;
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 14px;
+    transition: all 150ms ease;
+}
+
+.system-tray-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
 }
 
 .wm-control,
