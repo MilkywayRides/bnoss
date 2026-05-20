@@ -177,21 +177,25 @@ int main(int argc, char *argv[]) {
     GtkWidget *wifi_btn = gtk_button_new_with_label("📶");
     gtk_style_context_add_class(gtk_widget_get_style_context(wifi_btn), "system-tray-btn");
     gtk_widget_set_tooltip_text(wifi_btn, "Network");
+    g_signal_connect(wifi_btn, "clicked", G_CALLBACK(on_wifi_clicked), NULL);
     gtk_box_pack_end(GTK_BOX(hbox), wifi_btn, FALSE, FALSE, 2);
 
     GtkWidget *bluetooth_btn = gtk_button_new_with_label("🔵");
     gtk_style_context_add_class(gtk_widget_get_style_context(bluetooth_btn), "system-tray-btn");
     gtk_widget_set_tooltip_text(bluetooth_btn, "Bluetooth");
+    g_signal_connect(bluetooth_btn, "clicked", G_CALLBACK(on_bluetooth_clicked), NULL);
     gtk_box_pack_end(GTK_BOX(hbox), bluetooth_btn, FALSE, FALSE, 2);
 
     GtkWidget *volume_btn = gtk_button_new_with_label("🔊");
     gtk_style_context_add_class(gtk_widget_get_style_context(volume_btn), "system-tray-btn");
     gtk_widget_set_tooltip_text(volume_btn, "Volume");
+    g_signal_connect(volume_btn, "clicked", G_CALLBACK(on_volume_clicked), NULL);
     gtk_box_pack_end(GTK_BOX(hbox), volume_btn, FALSE, FALSE, 2);
 
     GtkWidget *battery_btn = gtk_button_new_with_label("🔋");
     gtk_style_context_add_class(gtk_widget_get_style_context(battery_btn), "system-tray-btn");
     gtk_widget_set_tooltip_text(battery_btn, "Battery");
+    g_signal_connect(battery_btn, "clicked", G_CALLBACK(on_battery_clicked), NULL);
     gtk_box_pack_end(GTK_BOX(hbox), battery_btn, FALSE, FALSE, 2);
 
     GtkWidget *settings_btn = gtk_button_new_with_label("⚙");
@@ -213,6 +217,19 @@ int main(int argc, char *argv[]) {
     if (!mon) {
         fprintf(stderr, "BlazeNeuro Bar: No primary monitor found\n");
         return 1;
+    }
+    GdkRectangle geom;
+    gdk_monitor_get_geometry(mon, &geom);
+
+    gtk_window_set_default_size(GTK_WINDOW(win), geom.width, BAR_HEIGHT);
+    gtk_window_move(GTK_WINDOW(win), geom.x, geom.y);
+
+    gtk_widget_show_all(win);
+    gtk_main();
+
+    return 0;
+}
+  return 1;
     }
     GdkRectangle geom;
     gdk_monitor_get_geometry(mon, &geom);

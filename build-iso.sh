@@ -265,8 +265,14 @@ apt-get install -y chromium || apt-get install -y chromium-browser || echo '[INF
 # VS Code from Microsoft repo
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
 echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main' > /etc/apt/sources.list.d/vscode.list
+
+# Terraform from HashiCorp repo
+wget -qO- https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo 'deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com bookworm main' > /etc/apt/sources.list.d/hashicorp.list
+
 apt-get update
 apt-get install -y code || echo '[INFO] VS Code install failed, skipping'
+apt-get install -y terraform || echo '[INFO] Terraform install failed, skipping'
 "
 
 echo "  ✓ Apps installed in $(( $(step_time) - START ))s"
@@ -281,7 +287,7 @@ sudo cp -r blazeneuro-de "$ROOTFS/tmp/"
 run_chroot "
 cd /tmp/blazeneuro-de
 make clean || true
-make install
+make -j\$(nproc) install
 cd /
 rm -rf /tmp/blazeneuro-de
 "
@@ -454,6 +460,20 @@ sudo cp "$ROOTFS/usr/share/applications/install-blazeneuro.desktop" "$ROOTFS/hom
 
 sudo chroot "$ROOTFS" chown -R user:user /home/user
 
+# Add DevOps aliases to .bashrc
+sudo tee -a "$ROOTFS/home/user/.bashrc" > /dev/null << 'BASHRC'
+
+# ── DevOps Aliases ─────────────────────────────────────────
+alias k='kubectl'
+alias d='docker'
+alias dc='docker-compose'
+alias ll='ls -la --color=auto'
+alias gs='git status'
+alias g='git'
+alias tf='terraform'
+# ───────────────────────────────────────────────────────────
+BASHRC
+
 echo "  ✓ User home configured"
 
 # ── Step 12: Clean up rootfs ──────────────────────────────
@@ -493,9 +513,9 @@ cp "$VMLINUZ" "$ISOROOT/boot/vmlinuz"
 cp "$INITRD" "$ISOROOT/boot/initrd.img"
 
 # Create squashfs
-echo "  Creating squashfs (this takes a while)..."
+echo "  Creating squashfs (this takes a while, but optimized with zstd)..."
 sudo mksquashfs "$ROOTFS" "$ISOROOT/live/filesystem.squashfs" \
-    -comp xz -Xbcj x86 -b 1M -e boot
+    -comp zstd -Xcompression-level 15 -b 1M -e boot
 
 # GRUB config
 cat > "$ISOROOT/boot/grub/grub.cfg" << 'GRUBCFG'
@@ -550,6 +570,10 @@ echo "Root password: root"
 echo ""
 echo "Boot with:"
 echo "  qemu-system-x86_64 -cdrom $ISO_OUTPUT -m 2048 -enable-kvm"
+echo ""
+echo "Install to disk:"
+echo "  sudo install-blazeneuro"
+ble-kvm"
 echo ""
 echo "Install to disk:"
 echo "  sudo install-blazeneuro"
