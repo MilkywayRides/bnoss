@@ -94,6 +94,9 @@ sudo tee "$ROOTFS/etc/hosts" > /dev/null << EOF
 127.0.1.1   blazeneuro
 EOF
 
+# ── Step 3: Configure locales ──────────────────────────────
+print_step 3 "Configure locales"
+
 mount_chroot
 
 run_chroot "
@@ -104,50 +107,7 @@ locale-gen
 update-locale LANG=en_US.UTF-8
 "
 
-echo "  ✓ Chroot configured"
-
-# ── Step 3: Brand as BlazeNeuro ───────────────────────────
-print_step 3 "Brand as $OS_NAME"
-
-sudo tee "$ROOTFS/etc/os-release" > /dev/null << OSREL
-NAME="$OS_NAME"
-VERSION="$OS_VERSION ($OS_CODENAME)"
-ID=blazeneuro
-ID_LIKE=debian
-VERSION_ID=$OS_VERSION
-VERSION_CODENAME=$OS_CODENAME
-PRETTY_NAME="$OS_NAME $OS_VERSION"
-HOME_URL="https://github.com/MilkywayRides/bnoss"
-SUPPORT_URL="https://github.com/MilkywayRides/bnoss/issues"
-OSREL
-
-sudo tee "$ROOTFS/etc/lsb-release" > /dev/null << LSBREL
-DISTRIB_ID=$OS_NAME
-DISTRIB_RELEASE=$OS_VERSION
-DISTRIB_CODENAME=$OS_CODENAME
-DISTRIB_DESCRIPTION="$OS_NAME $OS_VERSION"
-LSBREL
-
-# Login banners
-echo "$OS_NAME $OS_VERSION \\n \\l" | sudo tee "$ROOTFS/etc/issue" > /dev/null
-echo "$OS_NAME $OS_VERSION" | sudo tee "$ROOTFS/etc/issue.net" > /dev/null
-
-# Custom MOTD
-sudo rm -rf "$ROOTFS/etc/update-motd.d"/*
-sudo tee "$ROOTFS/etc/update-motd.d/00-blazeneuro" > /dev/null << 'MOTD'
-#!/bin/bash
-echo ""
-echo "  ╔══════════════════════════════════════╗"
-echo "  ║   Welcome to BlazeNeuro OS           ║"
-echo "  ║   Type 'neofetch' for system info    ║"
-echo "  ╚══════════════════════════════════════╝"
-echo ""
-MOTD
-sudo chmod +x "$ROOTFS/etc/update-motd.d/00-blazeneuro"
-
-sudo rm -f "$ROOTFS/etc/legal" 2>/dev/null || true
-
-echo "  ✓ Branding applied"
+echo "  ✓ Locales configured"
 
 # ── Step 4: Install core system packages ──────────────────
 print_step 4 "Install core system packages"
@@ -467,6 +427,9 @@ fi
 # Copy installer shortcut to desktop
 sudo cp "$ROOTFS/usr/share/applications/install-blazeneuro.desktop" "$ROOTFS/home/user/Desktop/" 2>/dev/null || true
 
+# Add .xsession fallback
+echo "exec /usr/local/bin/blazeneuro-session" | sudo tee "$ROOTFS/home/user/.xsession" > /dev/null
+
 sudo chroot "$ROOTFS" chown -R user:user /home/user
 
 # Add DevOps aliases to .bashrc
@@ -484,6 +447,49 @@ alias tf='terraform'
 BASHRC
 
 echo "  ✓ User home configured"
+
+# ── Step 11.5: Brand as BlazeNeuro ──────────────────────────
+print_step 11.5 "Brand as $OS_NAME"
+
+sudo tee "$ROOTFS/etc/os-release" > /dev/null << OSREL
+NAME="$OS_NAME"
+VERSION="$OS_VERSION ($OS_CODENAME)"
+ID=blazeneuro
+ID_LIKE=debian
+VERSION_ID=$OS_VERSION
+VERSION_CODENAME=$OS_CODENAME
+PRETTY_NAME="$OS_NAME $OS_VERSION"
+HOME_URL="https://github.com/MilkywayRides/bnoss"
+SUPPORT_URL="https://github.com/MilkywayRides/bnoss/issues"
+OSREL
+
+sudo tee "$ROOTFS/etc/lsb-release" > /dev/null << LSBREL
+DISTRIB_ID=$OS_NAME
+DISTRIB_RELEASE=$OS_VERSION
+DISTRIB_CODENAME=$OS_CODENAME
+DISTRIB_DESCRIPTION="$OS_NAME $OS_VERSION"
+LSBREL
+
+# Login banners
+echo "$OS_NAME $OS_VERSION \\n \\l" | sudo tee "$ROOTFS/etc/issue" > /dev/null
+echo "$OS_NAME $OS_VERSION" | sudo tee "$ROOTFS/etc/issue.net" > /dev/null
+
+# Custom MOTD
+sudo rm -rf "$ROOTFS/etc/update-motd.d"/*
+sudo tee "$ROOTFS/etc/update-motd.d/00-blazeneuro" > /dev/null << 'MOTD'
+#!/bin/bash
+echo ""
+echo "  ╔══════════════════════════════════════╗"
+echo "  ║   Welcome to BlazeNeuro OS           ║"
+echo "  ║   Type 'neofetch' for system info    ║"
+echo "  ╚══════════════════════════════════════╝"
+echo ""
+MOTD
+sudo chmod +x "$ROOTFS/etc/update-motd.d/00-blazeneuro"
+
+sudo rm -f "$ROOTFS/etc/legal" 2>/dev/null || true
+
+echo "  ✓ Branding applied"
 
 # ── Step 12: Clean up rootfs ──────────────────────────────
 print_step 12 "Clean up rootfs"

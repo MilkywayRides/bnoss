@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=BlazeNeuro
 Comment=BlazeNeuro Desktop Environment
-Exec=blazeneuro-session
+Exec=/usr/local/bin/blazeneuro-session
 Type=Application
 DesktopNames=BlazeNeuro
