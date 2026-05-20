@@ -193,6 +193,7 @@ apt-get install -y \
     libgtk-3-dev \
     libvte-2.91-dev \
     libx11-dev \
+    libpam0g-dev \
     pkg-config \
     adwaita-icon-theme \
     papirus-icon-theme \

@@ -625,7 +625,7 @@ static void handle_key_press(XKeyEvent *ev) {
         } else if (sym == XK_l || sym == XK_L) {
             /* Super+L: lock screen */
             if (fork() == 0) {
-                execlp("loginctl", "loginctl", "lock-session", NULL);
+                execlp("blazeneuro-lock", "blazeneuro-lock", NULL);
                 exit(0);
             }
         }

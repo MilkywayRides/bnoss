@@ -162,6 +162,10 @@ int main(int argc, char *argv[]) {
     gtk_style_context_add_class(gtk_widget_get_style_context(sc7), "muted");
     gtk_box_pack_start(GTK_BOX(sc_content), create_row("Show Desktop", sc7), FALSE, FALSE, 0);
 
+    GtkWidget *sc8 = gtk_label_new("Super + L");
+    gtk_style_context_add_class(gtk_widget_get_style_context(sc8), "muted");
+    gtk_box_pack_start(GTK_BOX(sc_content), create_row("Lock Screen", sc8), FALSE, FALSE, 0);
+
     gtk_box_pack_start(GTK_BOX(content), shortcuts, FALSE, FALSE, 0);
 
     /* About section */

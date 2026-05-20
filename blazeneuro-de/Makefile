@@ -18,6 +18,9 @@ all: blazeneuro-wm blazeneuro-desktop blazeneuro-dock blazeneuro-topbar \
 blazeneuro-wm: src/wm/wm.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_X11)
 
+blazeneuro-lock: src/lock/lock.c
+	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK) -lpam
+
 blazeneuro-desktop: src/desktop/desktop.c
 	$(CC) $(CFLAGS) -o $@ $< $(PKG_GTK)
 
@@ -80,6 +83,9 @@ clean:
 	rm -f blazeneuro-wm blazeneuro-desktop blazeneuro-dock blazeneuro-topbar \
 	      blazeneuro-terminal blazeneuro-files blazeneuro-launcher \
 	      blazeneuro-settings blazeneuro-notes blazeneuro-calculator \
-	      blazeneuro-taskviewer
+	      blazeneuro-taskviewer blazeneuro-lock
+
+.PHONY: all install clean
+askviewer
 
 .PHONY: all install clean
