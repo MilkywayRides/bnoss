@@ -250,7 +250,15 @@ apt-get install -y \
     \
     grub-pc-bin \
     grub-efi-amd64-bin \
-    grub-common
+    grub-common \
+    \
+    docker.io \
+    docker-compose \
+    tmux \
+    jq \
+    ansible \
+    podman \
+    kubernetes-client
 "
 
 echo "  ✓ Core packages installed in $(( $(step_time) - START ))s"
@@ -394,7 +402,7 @@ echo "  ✓ Install script created"
 print_step 8 "Create user account"
 
 run_chroot "
-useradd -m -s /bin/bash -G sudo,adm,cdrom,audio,video,plugdev,netdev user
+useradd -m -s /bin/bash -G sudo,adm,cdrom,audio,video,plugdev,netdev,docker user
 echo 'user:blazeneuro' | chpasswd
 echo 'root:root' | chpasswd
 echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user
@@ -571,10 +579,6 @@ echo "Root password: root"
 echo ""
 echo "Boot with:"
 echo "  qemu-system-x86_64 -cdrom $ISO_OUTPUT -m 2048 -enable-kvm"
-echo ""
-echo "Install to disk:"
-echo "  sudo install-blazeneuro"
-ble-kvm"
 echo ""
 echo "Install to disk:"
 echo "  sudo install-blazeneuro"
